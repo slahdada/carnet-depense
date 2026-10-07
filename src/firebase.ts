@@ -3,6 +3,10 @@ import {
   getAuth, 
   GoogleAuthProvider, 
   signInWithPopup, 
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  sendPasswordResetEmail,
+  updateProfile,
   signOut, 
   User 
 } from 'firebase/auth';
@@ -89,6 +93,72 @@ export async function testConnection() {
 testConnection();
 
 // Authentication helpers
+export async function loginWithEmail(email: string, password: string): Promise<User> {
+  try {
+    const cleanEmail = email.trim().toLowerCase();
+    const result = await signInWithEmailAndPassword(auth, cleanEmail, password);
+    if (result.user) {
+      try {
+        const userRef = doc(db, 'users', result.user.uid);
+        await setDoc(userRef, {
+          uid: result.user.uid,
+          email: result.user.email || cleanEmail,
+          displayName: result.user.displayName || cleanEmail.split('@')[0],
+          photoURL: result.user.photoURL || '',
+          updatedAt: new Date().toISOString()
+        }, { merge: true });
+      } catch (err) {
+        console.warn('Notice profil Firestore (Email):', err);
+      }
+    }
+    return result.user;
+  } catch (error) {
+    console.error('Erreur connexion Email:', error);
+    throw error;
+  }
+}
+
+export async function registerWithEmail(email: string, password: string, displayName?: string): Promise<User> {
+  try {
+    const cleanEmail = email.trim().toLowerCase();
+    const result = await createUserWithEmailAndPassword(auth, cleanEmail, password);
+    if (result.user) {
+      const finalName = displayName?.trim() || cleanEmail.split('@')[0];
+      try {
+        await updateProfile(result.user, { displayName: finalName });
+      } catch (e) {
+        console.warn('Notice mise à jour displayName:', e);
+      }
+      try {
+        const userRef = doc(db, 'users', result.user.uid);
+        await setDoc(userRef, {
+          uid: result.user.uid,
+          email: result.user.email || cleanEmail,
+          displayName: finalName,
+          photoURL: '',
+          updatedAt: new Date().toISOString()
+        }, { merge: true });
+      } catch (err) {
+        console.warn('Notice enregistrement profil Firestore:', err);
+      }
+    }
+    return result.user;
+  } catch (error) {
+    console.error('Erreur inscription Email:', error);
+    throw error;
+  }
+}
+
+export async function resetPassword(email: string): Promise<void> {
+  try {
+    const cleanEmail = email.trim().toLowerCase();
+    await sendPasswordResetEmail(auth, cleanEmail);
+  } catch (error) {
+    console.error('Erreur réinitialisation mot de passe:', error);
+    throw error;
+  }
+}
+
 export async function loginWithGoogle(): Promise<User> {
   try {
     const result = await signInWithPopup(auth, googleProvider);

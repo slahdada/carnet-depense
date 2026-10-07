@@ -1,6 +1,9 @@
 import { 
   auth, 
   loginWithGoogle, 
+  loginWithEmail,
+  registerWithEmail,
+  resetPassword,
   logoutUser, 
   subscribeToTransactions, 
   saveCloudTransaction, 
@@ -14,6 +17,10 @@ declare global {
     FirebaseSync?: {
       currentUser: User | null;
       login: () => Promise<void>;
+      loginWithGoogle: () => Promise<User>;
+      loginWithEmail: (email: string, password: string) => Promise<User>;
+      registerWithEmail: (email: string, password: string, displayName?: string) => Promise<User>;
+      resetPassword: (email: string) => Promise<void>;
       logout: () => Promise<void>;
       saveTransaction: (transaction: any) => Promise<void>;
       deleteTransaction: (id: string) => Promise<void>;
@@ -64,13 +71,53 @@ window.FirebaseSync = {
   },
 
   async login() {
+    await this.loginWithGoogle();
+  },
+
+  async loginWithGoogle() {
     try {
       const user = await loginWithGoogle();
       if (window.updateAuthUI) {
         window.updateAuthUI(user);
       }
+      return user;
     } catch (err: any) {
       console.error('Erreur connexion Google:', err);
+      throw err;
+    }
+  },
+
+  async loginWithEmail(email: string, password: string) {
+    try {
+      const user = await loginWithEmail(email, password);
+      if (window.updateAuthUI) {
+        window.updateAuthUI(user);
+      }
+      return user;
+    } catch (err: any) {
+      console.error('Erreur connexion Email:', err);
+      throw err;
+    }
+  },
+
+  async registerWithEmail(email: string, password: string, displayName?: string) {
+    try {
+      const user = await registerWithEmail(email, password, displayName);
+      if (window.updateAuthUI) {
+        window.updateAuthUI(user);
+      }
+      return user;
+    } catch (err: any) {
+      console.error('Erreur inscription Email:', err);
+      throw err;
+    }
+  },
+
+  async resetPassword(email: string) {
+    try {
+      await resetPassword(email);
+    } catch (err: any) {
+      console.error('Erreur mot de passe oublié:', err);
       throw err;
     }
   },
