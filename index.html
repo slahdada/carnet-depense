@@ -25,6 +25,7 @@
     <!-- PWA Manifest & Icons Links -->
     <link rel="manifest" href="/manifest.json" />
     <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <link rel="icon" type="image/png" sizes="192x192" href="/pwa-192x192.png" />
     <link rel="icon" type="image/png" sizes="512x512" href="/pwa-512x512.png" />
@@ -190,6 +191,37 @@
         50% { transform: scale(1.15); }
         100% { transform: scale(1); }
       }
+
+      /* Respect prefers-reduced-motion */
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after {
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+          scroll-behavior: auto !important;
+        }
+      }
+
+      /* iPhone Safe Area handling */
+      body {
+        padding-top: env(safe-area-inset-top, 0px);
+        padding-left: env(safe-area-inset-left, 0px);
+        padding-right: env(safe-area-inset-right, 0px);
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+      }
+
+      /* Immersive presentation mode fallback */
+      body.immersive-fullscreen {
+        margin: 0 !important;
+        padding: 0 !important;
+        max-width: 100vw !important;
+        min-height: 100dvh !important;
+      }
+      body.immersive-fullscreen .app-container {
+        max-width: 100% !important;
+        padding-top: max(0.5rem, env(safe-area-inset-top, 0px)) !important;
+        padding-bottom: max(1.5rem, env(safe-area-inset-bottom, 0px)) !important;
+      }
     </style>
   </head>
   <body class="bg-slate-950 text-slate-100 antialiased selection:bg-emerald-500/30 selection:text-emerald-200">
@@ -230,6 +262,16 @@
             <div id="userProfileMobile" class="hidden items-center">
               <img id="userAvatarMobile" onclick="triggerGoogleLogout()" src="" alt="Avatar" title="Connecté (toucher pour déconnecter)" class="w-8 h-8 rounded-full ring-2 ring-emerald-500 cursor-pointer object-cover" />
             </div>
+
+            <!-- Mobile Fullscreen Button -->
+            <button id="btnFullscreenMob" onclick="toggleFullscreen()" title="Activer / Quitter le mode plein écran" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition active:scale-95 flex items-center justify-center">
+              <svg id="iconFsMobEnter" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-5h-4m4 0v4m0-4l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+              </svg>
+              <svg id="iconFsMobExit" class="w-4 h-4 hidden text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 4v4H5m4 0L4 3m11 1v4h4m-4 0l5-5M9 20v-4H5m4 0l-5 5m11-1v-4h4m-4 0l5 5" />
+              </svg>
+            </button>
 
             <button onclick="clearAllTransactions()" title="Vider tout le carnet" class="p-2 rounded-xl bg-slate-800 hover:bg-rose-900/40 text-slate-300 hover:text-rose-300 border border-slate-700 transition active:scale-95">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -295,6 +337,17 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
             </svg>
             <span class="hidden sm:inline">Sauvegarde</span>
+          </button>
+
+          <!-- Fullscreen Toggle Button (Desktop) -->
+          <button id="btnFullscreenDesk" onclick="toggleFullscreen()" title="Activer / Quitter le mode plein écran" class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs sm:text-sm font-medium border border-slate-700 transition active:scale-95 cursor-pointer">
+            <svg id="iconFsDeskEnter" class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-5h-4m4 0v4m0-4l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+            </svg>
+            <svg id="iconFsDeskExit" class="w-4 h-4 shrink-0 hidden text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 4v4H5m4 0L4 3m11 1v4h4m-4 0l5-5M9 20v-4H5m4 0l-5 5m11-1v-4h4m-4 0l5 5" />
+            </svg>
+            <span id="lblFullscreenDesk" class="hidden sm:inline">Plein écran</span>
           </button>
 
           <!-- Clear All Data Button -->
@@ -959,18 +1012,35 @@
             <p class="text-xs text-slate-400">Accès direct depuis l'écran d'accueil</p>
           </div>
         </div>
-        <ol class="space-y-2.5 text-xs text-slate-300 my-4 bg-slate-900/60 p-3 rounded-xl border border-slate-800">
-          <li class="flex items-start gap-2">
-            <span class="font-bold text-indigo-400">1.</span>
-            <span>Appuyez sur le bouton <strong>Partager</strong> <svg class="w-3.5 h-3.5 inline text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/></svg> en bas de Safari.</span>
+        <ol class="space-y-3 text-xs text-slate-300 my-4 bg-slate-900/60 p-3.5 rounded-xl border border-slate-800">
+          <li class="flex items-start gap-2.5">
+            <span class="w-5 h-5 rounded-full bg-indigo-500/20 text-indigo-400 font-bold flex items-center justify-center shrink-0 text-[11px]">1</span>
+            <div class="leading-relaxed">
+              Touchez le bouton <strong>Partager</strong>
+              <svg class="w-4 h-4 inline-block text-indigo-400 align-text-bottom mx-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
+                <polyline points="16 6 12 2 8 6"/>
+                <line x1="12" y1="2" x2="12" y2="15"/>
+              </svg>
+              dans la barre de Safari (en bas sur iPhone, en haut sur iPad).
+            </div>
           </li>
-          <li class="flex items-start gap-2">
-            <span class="font-bold text-indigo-400">2.</span>
-            <span>Faites défiler et sélectionnez <strong>Sur l'écran d'accueil</strong>.</span>
+          <li class="flex items-start gap-2.5">
+            <span class="w-5 h-5 rounded-full bg-indigo-500/20 text-indigo-400 font-bold flex items-center justify-center shrink-0 text-[11px]">2</span>
+            <div class="leading-relaxed">
+              Faites défiler le menu et sélectionnez <strong>Sur l'écran d'accueil</strong>
+              <svg class="w-4 h-4 inline-block text-indigo-400 align-text-bottom mx-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="4"/>
+                <line x1="12" y1="8" x2="12" y2="16"/>
+                <line x1="8" y1="12" x2="16" y2="12"/>
+              </svg>.
+            </div>
           </li>
-          <li class="flex items-start gap-2">
-            <span class="font-bold text-indigo-400">3.</span>
-            <span>Touchez <strong>Ajouter</strong> en haut à droite.</span>
+          <li class="flex items-start gap-2.5">
+            <span class="w-5 h-5 rounded-full bg-indigo-500/20 text-indigo-400 font-bold flex items-center justify-center shrink-0 text-[11px]">3</span>
+            <div class="leading-relaxed">
+              Appuyez sur <strong>Ajouter</strong> en haut à droite pour finaliser l'installation autonome.
+            </div>
           </li>
         </ol>
         <button onclick="closeIosInstallModal()" class="w-full py-2.5 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 shadow-md transition">
@@ -2359,6 +2429,10 @@
           }
           if (btnMobile) btnMobile.classList.remove('hidden');
         }
+
+        // Initialize Fullscreen listeners and update button icons
+        setupFullscreenListeners();
+        updateFullscreenUI();
       }
 
       function setupOnlineOfflineListener() {
@@ -2460,6 +2534,154 @@
         }
       }
 
+      // --- 9. GESTION DU PLEIN ÉCRAN & MODE IMMERSIF ---
+      function isFullscreenSupported() {
+        return !!(
+          (document.fullscreenEnabled ||
+           document.webkitFullscreenEnabled ||
+           document.mozFullScreenEnabled ||
+           document.msFullscreenEnabled) &&
+          (document.documentElement.requestFullscreen ||
+           document.documentElement.webkitRequestFullscreen ||
+           document.documentElement.mozRequestFullScreen ||
+           document.documentElement.msRequestFullscreen)
+        );
+      }
+
+      function isCurrentlyFullscreen() {
+        return !!(
+          document.fullscreenElement ||
+          document.webkitFullscreenElement ||
+          document.mozFullScreenElement ||
+          document.msFullscreenElement ||
+          document.body.classList.contains('immersive-fullscreen')
+        );
+      }
+
+      function updateFullscreenUI() {
+        const inFs = isCurrentlyFullscreen();
+        
+        // Desktop elements
+        const iconDeskEnter = document.getElementById('iconFsDeskEnter');
+        const iconDeskExit = document.getElementById('iconFsDeskExit');
+        const lblDesk = document.getElementById('lblFullscreenDesk');
+        const btnDesk = document.getElementById('btnFullscreenDesk');
+
+        // Mobile elements
+        const iconMobEnter = document.getElementById('iconFsMobEnter');
+        const iconMobExit = document.getElementById('iconFsMobExit');
+        const btnMob = document.getElementById('btnFullscreenMob');
+
+        if (inFs) {
+          if (iconDeskEnter) iconDeskEnter.classList.add('hidden');
+          if (iconDeskExit) iconDeskExit.classList.remove('hidden');
+          if (lblDesk) lblDesk.textContent = 'Quitter';
+          if (btnDesk) {
+            btnDesk.title = 'Quitter le mode plein écran (Échap)';
+            btnDesk.classList.add('border-emerald-500/50', 'text-emerald-400');
+          }
+
+          if (iconMobEnter) iconMobEnter.classList.add('hidden');
+          if (iconMobExit) iconMobExit.classList.remove('hidden');
+          if (btnMob) {
+            btnMob.title = 'Quitter le mode plein écran';
+            btnMob.classList.add('border-emerald-500/50', 'text-emerald-400');
+          }
+        } else {
+          if (iconDeskEnter) iconDeskEnter.classList.remove('hidden');
+          if (iconDeskExit) iconDeskExit.classList.add('hidden');
+          if (lblDesk) lblDesk.textContent = 'Plein écran';
+          if (btnDesk) {
+            btnDesk.title = 'Activer le mode plein écran';
+            btnDesk.classList.remove('border-emerald-500/50', 'text-emerald-400');
+          }
+
+          if (iconMobEnter) iconMobEnter.classList.remove('hidden');
+          if (iconMobExit) iconMobExit.classList.add('hidden');
+          if (btnMob) {
+            btnMob.title = 'Activer le mode plein écran';
+            btnMob.classList.remove('border-emerald-500/50', 'text-emerald-400');
+          }
+        }
+      }
+
+      async function toggleFullscreen() {
+        const inFs = isCurrentlyFullscreen();
+
+        if (inFs) {
+          // Si plein écran standard actif
+          if (document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement) {
+            try {
+              if (document.exitFullscreen) {
+                await document.exitFullscreen();
+              } else if (document.webkitExitFullscreen) {
+                await document.webkitExitFullscreen();
+              } else if (document.mozCancelFullScreen) {
+                await document.mozCancelFullScreen();
+              } else if (document.msExitFullscreen) {
+                await document.msExitFullscreen();
+              }
+            } catch (err) {
+              console.warn('Sortie plein écran standard :', err);
+            }
+          }
+          // Sortie du mode immersif
+          document.body.classList.remove('immersive-fullscreen');
+          updateFullscreenUI();
+          triggerToast('Plein écran désactivé', '⛶');
+        } else {
+          // Tentative de plein écran standard
+          let entered = false;
+          if (isFullscreenSupported()) {
+            try {
+              const el = document.documentElement;
+              if (el.requestFullscreen) {
+                await el.requestFullscreen();
+                entered = true;
+              } else if (el.webkitRequestFullscreen) {
+                await el.webkitRequestFullscreen();
+                entered = true;
+              } else if (el.mozRequestFullScreen) {
+                await el.mozRequestFullScreen();
+                entered = true;
+              } else if (el.msRequestFullscreen) {
+                await el.msRequestFullscreen();
+                entered = true;
+              }
+            } catch (err) {
+              console.warn('Plein écran standard non permis (sandbox/iframe ou restriction navigateur) :', err);
+            }
+          }
+
+          if (entered) {
+            triggerToast('Mode plein écran activé', '⛶');
+          } else {
+            // Mode immersif de repli (Safari iOS, iframe restreinte ou navigateur sans Fullscreen API)
+            document.body.classList.add('immersive-fullscreen');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            triggerToast('Mode immersif activé (Plein écran matériel restreint par ce navigateur)', '📱');
+          }
+          updateFullscreenUI();
+        }
+      }
+
+      function setupFullscreenListeners() {
+        ['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange', 'MSFullscreenChange'].forEach(evt => {
+          document.addEventListener(evt, updateFullscreenUI);
+        });
+
+        // Gestion de la sortie avec la touche Échap
+        document.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape' || e.key === 'Esc') {
+            if (document.body.classList.contains('immersive-fullscreen')) {
+              document.body.classList.remove('immersive-fullscreen');
+              updateFullscreenUI();
+              triggerToast('Sortie du mode immersif', '⛶');
+            }
+          }
+        });
+      }
+
       function generateIconDataUrl(size, isMaskable = false) {
         try {
           const canvas = document.createElement('canvas');
@@ -2504,62 +2726,64 @@
           const icon512 = generateIconDataUrl(512, false);
           const iconMaskable = generateIconDataUrl(512, true);
 
-          // Also set apple-touch-icon
-          if (icon192) {
-            let appleIcon = document.querySelector('link[rel="apple-touch-icon"]');
-            if (!appleIcon) {
-              appleIcon = document.createElement('link');
-              appleIcon.rel = 'apple-touch-icon';
-              document.head.appendChild(appleIcon);
-            }
-            appleIcon.href = icon192;
+          // Assurer la présence de l'icône Apple Touch
+          let appleIcon = document.querySelector('link[rel="apple-touch-icon"]');
+          if (!appleIcon) {
+            appleIcon = document.createElement('link');
+            appleIcon.rel = 'apple-touch-icon';
+            appleIcon.sizes = '180x180';
+            appleIcon.href = '/apple-touch-icon.png';
+            document.head.appendChild(appleIcon);
           }
-
-          const manifestObject = {
-            id: '/',
-            name: 'Carnet de Revenus et Dépenses',
-            short_name: 'CarnetBudget',
-            description: 'Application de gestion de budget et suivi des revenus et dépenses',
-            start_url: '.',
-            scope: './',
-            display: 'standalone',
-            orientation: 'portrait',
-            background_color: '#0f172a',
-            theme_color: '#0f172a',
-            icons: [
-              {
-                src: icon192,
-                sizes: '192x192',
-                type: 'image/png',
-                purpose: 'any'
-              },
-              {
-                src: icon512,
-                sizes: '512x512',
-                type: 'image/png',
-                purpose: 'any'
-              },
-              {
-                src: iconMaskable,
-                sizes: '512x512',
-                type: 'image/png',
-                purpose: 'maskable'
-              }
-            ]
-          };
-
-          const manifestBlob = new Blob([JSON.stringify(manifestObject)], { type: 'application/manifest+json' });
-          const manifestUrl = URL.createObjectURL(manifestBlob);
 
           let linkElem = document.querySelector('link[rel="manifest"]');
           if (!linkElem) {
             linkElem = document.createElement('link');
             linkElem.rel = 'manifest';
+            linkElem.href = '/manifest.json';
             document.head.appendChild(linkElem);
           }
-          linkElem.href = manifestUrl;
+
+          // Uniquement en exécution locale 'file://', générer un Blob URL de secours
+          if (window.location.protocol === 'file:') {
+            const manifestObject = {
+              id: '/',
+              name: 'Carnet de Revenus et Dépenses',
+              short_name: 'CarnetBudget',
+              description: 'Application de gestion de budget et suivi des revenus et dépenses',
+              start_url: '.',
+              scope: './',
+              display: 'standalone',
+              orientation: 'any',
+              background_color: '#0f172a',
+              theme_color: '#0f172a',
+              icons: [
+                {
+                  src: icon192,
+                  sizes: '192x192',
+                  type: 'image/png',
+                  purpose: 'any'
+                },
+                {
+                  src: icon512,
+                  sizes: '512x512',
+                  type: 'image/png',
+                  purpose: 'any'
+                },
+                {
+                  src: iconMaskable,
+                  sizes: '512x512',
+                  type: 'image/png',
+                  purpose: 'maskable'
+                }
+              ]
+            };
+
+            const manifestBlob = new Blob([JSON.stringify(manifestObject)], { type: 'application/manifest+json' });
+            linkElem.href = URL.createObjectURL(manifestBlob);
+          }
         } catch (e) {
-          console.warn('PWA Manifest creation notice:', e);
+          console.warn('PWA Manifest notice:', e);
         }
       }
 

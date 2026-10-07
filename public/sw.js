@@ -1,13 +1,15 @@
-const CACHE_NAME = 'budget-pwa-v2';
+const CACHE_NAME = 'budget-pwa-v3';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
+  '/offline.html',
   '/manifest.json',
   '/pwa-192x192.png',
   '/pwa-512x512.png',
   '/pwa-maskable-512x512.png',
   '/apple-touch-icon.png',
-  '/icon.svg'
+  '/icon.svg',
+  '/favicon.ico'
 ];
 
 self.addEventListener('install', (event) => {
@@ -56,9 +58,9 @@ self.addEventListener('fetch', (event) => {
           if (cachedResponse) {
             return cachedResponse;
           }
-          // If request is navigation, fallback to index
+          // If request is navigation, fallback to index or offline page
           if (event.request.mode === 'navigate') {
-            return caches.match('/');
+            return caches.match('/').then((idx) => idx || caches.match('/offline.html'));
           }
         });
       })
