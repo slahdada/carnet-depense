@@ -1134,11 +1134,18 @@
             triggerToast('Connexion Google en cours...', '⏳');
             await window.FirebaseSync.login();
           } else {
-            triggerToast('Module Firebase prêt. Veuillez patienter...', '⏳');
+            triggerToast('Initialisation du Cloud...', '⏳');
           }
         } catch (err) {
-          console.error(err);
-          triggerToast('Erreur de connexion Google', '⚠️');
+          console.warn('Auth note:', err);
+          const errStr = String(err?.message || err || '');
+          if (errStr.includes('popup-closed-by-user')) {
+            triggerToast('Fenêtre de connexion fermée', 'ℹ️');
+          } else if (errStr.includes('cancelled-popup-request')) {
+            // Ignoré
+          } else {
+            triggerToast('Erreur d\'authentification Cloud', '⚠️');
+          }
         }
       }
 

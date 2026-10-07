@@ -4,7 +4,6 @@ import {
   GoogleAuthProvider, 
   signInWithPopup, 
   signOut, 
-  onAuthStateChanged,
   User 
 } from 'firebase/auth';
 import { 
@@ -27,6 +26,7 @@ const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
+googleProvider.setCustomParameters({ prompt: 'select_account' });
 
 // Error handling types and helper as mandated by Firebase Skill
 export enum OperationType {
@@ -72,7 +72,7 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
     operationType,
     path
   };
-  console.error('Firestore Error: ', JSON.stringify(errInfo));
+  console.warn('Firestore Warning/Error: ', JSON.stringify(errInfo));
   throw new Error(JSON.stringify(errInfo));
 }
 
@@ -82,7 +82,7 @@ export async function testConnection() {
     await getDocFromServer(doc(db, 'test', 'connection'));
   } catch (error) {
     if (error instanceof Error && error.message.includes('the client is offline')) {
-      console.error("Please check your Firebase configuration.");
+      console.warn("Vérification configuration Firebase (hors-ligne).");
     }
   }
 }
@@ -92,11 +92,9 @@ testConnection();
 export async function loginWithGoogle(): Promise<User> {
   try {
     const result = await signInWithPopup(auth, googleProvider);
-    // Sauvegarder ou mettre à jour le profil utilisateur dans Firestore
     if (result.user) {
-      const userRef = doc(db, 'users', result.user.uid);
-      const userPath = `users/${result.user.uid}`;
       try {
+        const userRef = doc(db, 'users', result.user.uid);
         await setDoc(userRef, {
           uid: result.user.uid,
           email: result.user.email || '',
@@ -105,7 +103,7 @@ export async function loginWithGoogle(): Promise<User> {
           updatedAt: new Date().toISOString()
         }, { merge: true });
       } catch (err) {
-        handleFirestoreError(err, OperationType.WRITE, userPath);
+        console.warn('Notice profil Firestore:', err);
       }
     }
     return result.user;
@@ -156,8 +154,8 @@ export function subscribeToTransactions(
       onData(list);
     },
     (error) => {
+      console.warn('Erreur écoute Firestore:', error.message);
       onError?.(error);
-      handleFirestoreError(error, OperationType.LIST, collectionPath);
     }
   );
 }

@@ -51,7 +51,7 @@ onAuthStateChanged(auth, async (user) => {
         }
       },
       (error) => {
-        console.error('Erreur écoute Firestore:', error);
+        console.warn('Notification synchronisation:', error);
       }
     );
   }
