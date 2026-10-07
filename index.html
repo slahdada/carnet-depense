@@ -1,0 +1,2227 @@
+<!doctype html>
+<html lang="fr" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <title>Carnet de Revenus et Dépenses</title>
+    <meta name="description" content="Application web PWA moderne de gestion financière personnelle, suivi des dépenses et revenus, bilans et calculs périodiques." />
+    
+    <!-- OpenGraph & Social Cards -->
+    <meta property="og:title" content="Carnet de Revenus et Dépenses" />
+    <meta property="og:description" content="Application web PWA moderne de gestion financière personnelle, suivi des dépenses et revenus, bilans et calculs périodiques." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    
+    <!-- PWA & Mobile Meta Tags -->
+    <meta name="theme-color" content="#0f172a" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="CarnetBudget" />
+    <meta name="application-name" content="Carnet de Revenus et Dépenses" />
+    <meta name="format-detection" content="telephone=no" />
+    
+    <!-- PWA Manifest & Icons Links -->
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/pwa-192x192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="/pwa-512x512.png" />
+    
+    <!-- Tailwind CSS CDN for instant standalone execution -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              slate: {
+                850: '#111b2e',
+                900: '#0f172a',
+                950: '#090d16',
+              },
+              emerald: {
+                500: '#10b981',
+                600: '#059669',
+                700: '#047857',
+              },
+              rose: {
+                500: '#f43f5e',
+                600: '#e11d48',
+                700: '#be123c',
+              }
+            }
+          }
+        }
+      }
+    </script>
+    
+    <!-- Custom styling & PWA fixes -->
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+      *, *::before, *::after {
+        box-sizing: border-box;
+      }
+
+      html, body {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        overflow-x: hidden;
+        width: 100%;
+        max-width: 100vw;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      * {
+        font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+        -webkit-tap-highlight-color: transparent;
+      }
+      .font-mono {
+        font-family: 'JetBrains Mono', monospace;
+      }
+      
+      /* Smooth transitions and scrollbar */
+      ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+      ::-webkit-scrollbar-track {
+        background: rgba(15, 23, 42, 0.6);
+      }
+      ::-webkit-scrollbar-thumb {
+        background: rgba(100, 116, 139, 0.4);
+        border-radius: 9999px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: rgba(100, 116, 139, 0.7);
+      }
+
+      /* Glassmorphism helpers */
+      .glass-panel {
+        background: rgba(30, 41, 59, 0.7);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+      .glass-card {
+        background: rgba(15, 23, 42, 0.75);
+        backdrop-filter: blur(8px);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+      }
+      
+      /* Glow effects */
+      .glow-emerald {
+        box-shadow: 0 0 25px -5px rgba(16, 185, 129, 0.25);
+      }
+      .glow-rose {
+        box-shadow: 0 0 25px -5px rgba(244, 63, 94, 0.25);
+      }
+      .glow-primary {
+        box-shadow: 0 0 30px -5px rgba(59, 130, 246, 0.25);
+      }
+
+      /* Mobile viewport height optimization */
+      .app-container {
+        min-height: 100vh;
+        min-height: 100dvh;
+      }
+
+      /* Modal animate */
+      @keyframes modalIn {
+        from {
+          opacity: 0;
+          transform: scale(0.95) translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: scale(1) translateY(0);
+        }
+      }
+      .animate-modal {
+        animation: modalIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      }
+
+      /* Transitions Slide-In pour les écritures */
+      @keyframes txSlideInDesktop {
+        0% {
+          opacity: 0;
+          transform: translateX(-18px) scale(0.99);
+        }
+        60% {
+          opacity: 0.9;
+        }
+        100% {
+          opacity: 1;
+          transform: translateX(0) scale(1);
+        }
+      }
+
+      @keyframes txSlideInMobile {
+        0% {
+          opacity: 0;
+          transform: translateY(14px) scale(0.98);
+        }
+        100% {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+
+      .tx-row-enter {
+        animation: txSlideInDesktop 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+        will-change: transform, opacity;
+      }
+
+      .tx-card-enter {
+        animation: txSlideInMobile 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+        will-change: transform, opacity;
+      }
+
+      .tx-badge-pulse {
+        animation: pulseBadge 0.3s ease-out;
+      }
+
+      @keyframes pulseBadge {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.15); }
+        100% { transform: scale(1); }
+      }
+    </style>
+  </head>
+  <body class="bg-slate-950 text-slate-100 antialiased selection:bg-emerald-500/30 selection:text-emerald-200">
+    <div class="app-container flex flex-col max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-6 pb-24 md:pb-6">
+      
+      <!-- TOP HEADER / NAVBAR -->
+      <header class="glass-panel rounded-2xl p-3 sm:p-4 mb-4 sm:mb-6 shadow-xl flex flex-col md:flex-row md:items-center md:justify-between gap-3 sticky top-2 z-30">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-gradient-to-tr from-emerald-600 via-teal-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-emerald-500/20 text-white font-bold text-xl ring-1 ring-white/20">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <h1 class="text-lg sm:text-xl font-bold tracking-tight text-white">Carnet Financier</h1>
+                <button onclick="openPwaInfoModal()" title="Voir les détails PWA & Installation" class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold tracking-wide bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20 transition cursor-pointer">
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                  <span>PWA • V1.0</span>
+                </button>
+              </div>
+              <p class="text-xs text-slate-400 hidden xs:block">Gestion intelligente des Revenus & Dépenses</p>
+            </div>
+          </div>
+
+          <!-- Mobile Quick Add Button Header -->
+          <div class="flex items-center gap-2 md:hidden">
+            <button id="btnPwaInstallMobile" onclick="triggerPwaInstall()" class="hidden items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow transition active:scale-95">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              <span>Installer</span>
+            </button>
+            <button onclick="openTransactionModal()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-lg shadow-emerald-600/30 transition active:scale-95">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
+              </svg>
+              <span>Ajouter</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Desktop Action Controls -->
+        <div class="flex items-center flex-wrap gap-2 justify-end">
+          <!-- PWA Install Button Desktop -->
+          <button id="btnPwaInstall" onclick="triggerPwaInstall()" class="hidden items-center gap-2 px-3 py-2 rounded-xl bg-indigo-600/90 hover:bg-indigo-600 text-white text-xs sm:text-sm font-semibold shadow-lg shadow-indigo-600/20 border border-indigo-400/30 transition active:scale-95 animate-pulse">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            <span>Installer l'App</span>
+          </button>
+
+          <!-- Export / Backup Modal trigger -->
+          <button onclick="openExportModal()" title="Sauvegarde et Exportation" class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs sm:text-sm font-medium border border-slate-700 transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+            </svg>
+            <span class="hidden sm:inline">Sauvegarde</span>
+          </button>
+
+          <!-- Reset / Demo Data -->
+          <button onclick="resetDemoData()" title="Recharger les données de démonstration" class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs sm:text-sm font-medium border border-slate-700 transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            <span class="hidden md:inline">Démo</span>
+          </button>
+
+          <!-- Primary Add Button Desktop -->
+          <button onclick="openTransactionModal()" class="hidden md:flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold shadow-lg shadow-emerald-600/30 border border-emerald-400/30 transition active:scale-95">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
+            </svg>
+            <span>Nouvelle Opération</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- PERIOD SELECTOR TABS -->
+      <section class="glass-panel rounded-2xl p-2 sm:p-3 mb-4 sm:mb-6 shadow-md">
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+          <!-- Filter Tabs -->
+          <div class="grid grid-cols-4 gap-1 p-1 bg-slate-900/90 rounded-xl border border-slate-800">
+            <button onclick="setPeriodFilter('today')" id="tab-today" class="period-tab px-2 sm:px-3 py-2 text-xs sm:text-sm font-semibold rounded-lg text-slate-400 hover:text-white transition flex items-center justify-center gap-1">
+              <span>Jour</span>
+            </button>
+            <button onclick="setPeriodFilter('week')" id="tab-week" class="period-tab px-2 sm:px-3 py-2 text-xs sm:text-sm font-semibold rounded-lg text-slate-400 hover:text-white transition flex items-center justify-center gap-1">
+              <span>Semaine</span>
+            </button>
+            <button onclick="setPeriodFilter('month')" id="tab-month" class="period-tab px-2 sm:px-3 py-2 text-xs sm:text-sm font-semibold rounded-lg text-slate-400 hover:text-white transition flex items-center justify-center gap-1">
+              <span>Mois</span>
+            </button>
+            <button onclick="setPeriodFilter('all')" id="tab-all" class="period-tab px-2 sm:px-3 py-2 text-xs sm:text-sm font-semibold rounded-lg text-slate-400 hover:text-white transition flex items-center justify-center gap-1">
+              <span>Tout</span>
+            </button>
+          </div>
+
+          <!-- Dynamic Period Sub-Controls (Date Picker / Month Selector / Label) -->
+          <div class="flex items-center justify-between sm:justify-end gap-2 text-xs text-slate-300 px-1">
+            <div id="periodDisplayLabel" class="font-medium text-slate-300 flex items-center gap-1.5">
+              <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <span id="periodText">Chargement...</span>
+            </div>
+
+            <!-- Custom Date input when in 'today' mode or custom picker -->
+            <input type="date" id="customDatePicker" onchange="onCustomDateChange(this.value)" class="hidden bg-slate-900 border border-slate-700 text-xs rounded-lg px-2 py-1 text-slate-200 focus:outline-none focus:border-emerald-500" />
+            
+            <!-- Custom Month input when in 'month' mode -->
+            <input type="month" id="customMonthPicker" onchange="onCustomMonthChange(this.value)" class="hidden bg-slate-900 border border-slate-700 text-xs rounded-lg px-2 py-1 text-slate-200 focus:outline-none focus:border-emerald-500" />
+          </div>
+        </div>
+      </section>
+
+      <!-- KPI METRICS GRID -->
+      <section class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
+        <!-- 1. SOLDE NET -->
+        <div id="kpiNetCard" class="glass-panel rounded-2xl p-4 sm:p-5 flex flex-col justify-between transition-all duration-300 relative overflow-hidden group">
+          <div class="absolute -right-6 -bottom-6 w-24 h-24 rounded-full bg-slate-700/10 pointer-events-none group-hover:scale-125 transition-transform"></div>
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Solde Net</span>
+            <div id="kpiNetBadge" class="px-2 py-0.5 rounded-full text-[10px] font-bold">
+              --
+            </div>
+          </div>
+          <div>
+            <div id="kpiNetValue" class="text-xl sm:text-3xl font-extrabold tracking-tight font-mono text-white">0,00 €</div>
+            <p id="kpiNetSub" class="text-[11px] text-slate-400 mt-1">Revenus - Dépenses</p>
+          </div>
+        </div>
+
+        <!-- 2. TOTAL REVENUS -->
+        <div class="glass-panel rounded-2xl p-4 sm:p-5 flex flex-col justify-between relative overflow-hidden group hover:border-emerald-500/30 transition-all">
+          <div class="absolute -right-6 -bottom-6 w-24 h-24 rounded-full bg-emerald-500/10 pointer-events-none group-hover:scale-125 transition-transform"></div>
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Revenus</span>
+            <span class="p-1.5 rounded-lg bg-emerald-500/15 text-emerald-400">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M7 11l5-5m0 0l5 5m-5-5v12" />
+              </svg>
+            </span>
+          </div>
+          <div>
+            <div id="kpiIncomeValue" class="text-xl sm:text-3xl font-extrabold tracking-tight font-mono text-emerald-400">+0,00 €</div>
+            <p id="kpiIncomeCount" class="text-[11px] text-slate-400 mt-1">0 rentrée(s)</p>
+          </div>
+        </div>
+
+        <!-- 3. TOTAL DÉPENSES -->
+        <div class="glass-panel rounded-2xl p-4 sm:p-5 flex flex-col justify-between relative overflow-hidden group hover:border-rose-500/30 transition-all">
+          <div class="absolute -right-6 -bottom-6 w-24 h-24 rounded-full bg-rose-500/10 pointer-events-none group-hover:scale-125 transition-transform"></div>
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Dépenses</span>
+            <span class="p-1.5 rounded-lg bg-rose-500/15 text-rose-400">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M17 13l-5 5m0 0l-5-5m5 5V6" />
+              </svg>
+            </span>
+          </div>
+          <div>
+            <div id="kpiExpenseValue" class="text-xl sm:text-3xl font-extrabold tracking-tight font-mono text-rose-400">-0,00 €</div>
+            <p id="kpiExpenseCount" class="text-[11px] text-slate-400 mt-1">0 sortie(s)</p>
+          </div>
+        </div>
+
+        <!-- 4. TAUX D'ÉPARGNE -->
+        <div class="glass-panel rounded-2xl p-4 sm:p-5 flex flex-col justify-between relative overflow-hidden group">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Taux d'Épargne</span>
+            <span id="kpiSavingsIcon" class="p-1.5 rounded-lg bg-blue-500/15 text-blue-400">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+              </svg>
+            </span>
+          </div>
+          <div>
+            <div class="flex items-baseline gap-2">
+              <span id="kpiSavingsRate" class="text-xl sm:text-3xl font-extrabold tracking-tight font-mono text-blue-400">0%</span>
+              <span id="kpiSavingsComment" class="text-[10px] font-medium text-slate-400">du revenu</span>
+            </div>
+            <!-- Progress Bar -->
+            <div class="w-full bg-slate-800 rounded-full h-1.5 mt-2.5 overflow-hidden">
+              <div id="kpiSavingsProgress" class="bg-blue-500 h-1.5 rounded-full transition-all duration-500" style="width: 0%"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- MOBILE VIEW SELECTOR (Visible only on screens < lg) -->
+      <div class="lg:hidden glass-panel rounded-2xl p-1 mb-4 flex items-center border border-slate-800 shadow-md">
+        <button id="mobileViewTabTransactions" onclick="setMobileView('transactions')" class="flex-1 py-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 bg-emerald-600 text-white shadow-md active:scale-95">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+          </svg>
+          <span>Opérations (<span id="mobileCountBadge">0</span>)</span>
+        </button>
+        <button id="mobileViewTabReports" onclick="setMobileView('reports')" class="flex-1 py-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 text-slate-400 hover:text-white active:scale-95">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+          </svg>
+          <span>Rapport & Bilan</span>
+        </button>
+      </div>
+
+      <!-- MAIN CONTENT: DUAL COLUMN (ANALYTICS & TRANSACTIONS) -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 flex-1 items-start">
+        
+        <!-- LEFT: TRANSACTIONS LIST & CONTROLS (8 Cols) -->
+        <section id="transactionsSection" class="lg:col-span-8 flex flex-col gap-4">
+          
+          <!-- SEARCH & QUICK FILTERS BAR -->
+          <div class="glass-panel rounded-2xl p-3 sm:p-4 flex flex-col gap-3">
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+              <div class="relative flex-1">
+                <input type="text" id="searchInput" oninput="applyFilters()" placeholder="Rechercher (ex: Loyer, Courses, Salaire)..." class="w-full bg-slate-900/90 border border-slate-700/80 rounded-xl pl-9 pr-4 py-2 text-xs sm:text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition" />
+                <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5 sm:top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+
+              <div class="flex items-center gap-2">
+                <!-- Type Filter dropdown -->
+                <select id="typeFilter" onchange="applyFilters()" class="bg-slate-900 border border-slate-700/80 text-xs sm:text-sm rounded-xl px-2.5 py-2 text-slate-200 focus:outline-none focus:border-emerald-500">
+                  <option value="all">Tous types</option>
+                  <option value="expense">Dépenses (-)</option>
+                  <option value="income">Revenus (+)</option>
+                </select>
+
+                <!-- Category Filter dropdown -->
+                <select id="categoryFilter" onchange="applyFilters()" class="bg-slate-900 border border-slate-700/80 text-xs sm:text-sm rounded-xl px-2.5 py-2 text-slate-200 focus:outline-none focus:border-emerald-500 hidden sm:block">
+                  <option value="all">Toutes catégories</option>
+                </select>
+
+                <!-- Clear Filters Button -->
+                <button onclick="resetFilters()" title="Réinitialiser filtres" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition active:scale-95">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <!-- Mobile Quick Category Horizontal Filter Chips -->
+            <div class="flex items-center gap-1.5 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none text-xs">
+              <button onclick="selectQuickCategory('all')" id="chip-cat-all" class="quick-cat-chip shrink-0 px-2.5 py-1 rounded-lg bg-emerald-600 text-white font-medium transition active:scale-95">
+                Tout
+              </button>
+              <button onclick="selectQuickCategory('alimentation')" id="chip-cat-alimentation" class="quick-cat-chip shrink-0 px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 font-medium border border-slate-800 transition active:scale-95">
+                🛒 Courses
+              </button>
+              <button onclick="selectQuickCategory('logement')" id="chip-cat-logement" class="quick-cat-chip shrink-0 px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 font-medium border border-slate-800 transition active:scale-95">
+                🏠 Logement
+              </button>
+              <button onclick="selectQuickCategory('transport')" id="chip-cat-transport" class="quick-cat-chip shrink-0 px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 font-medium border border-slate-800 transition active:scale-95">
+                🚗 Transport
+              </button>
+              <button onclick="selectQuickCategory('loisirs')" id="chip-cat-loisirs" class="quick-cat-chip shrink-0 px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 font-medium border border-slate-800 transition active:scale-95">
+                🎉 Loisirs
+              </button>
+              <button onclick="selectQuickCategory('salaire')" id="chip-cat-salaire" class="quick-cat-chip shrink-0 px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 font-medium border border-slate-800 transition active:scale-95">
+                💼 Salaire
+              </button>
+              <button onclick="selectQuickCategory('freelance')" id="chip-cat-freelance" class="quick-cat-chip shrink-0 px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 font-medium border border-slate-800 transition active:scale-95">
+                💻 Freelance
+              </button>
+            </div>
+          </div>
+
+          <!-- TRANSACTIONS CONTAINER -->
+          <div class="glass-panel rounded-2xl overflow-hidden shadow-xl border border-slate-800">
+            <!-- Table Header info -->
+            <div class="p-3 sm:p-4 bg-slate-900/60 border-b border-slate-800 flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <h2 class="text-sm sm:text-base font-bold text-white">Journal des Opérations</h2>
+                <span id="transactionCountBadge" class="px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-800 text-slate-300">0</span>
+              </div>
+              <div class="text-xs text-slate-400 flex items-center gap-2">
+                <span>Trier :</span>
+                <select id="sortSelect" onchange="applyFilters()" class="bg-slate-900 border border-slate-700 text-xs rounded-lg px-2 py-1 text-slate-300 focus:outline-none">
+                  <option value="date-desc">Plus récent</option>
+                  <option value="date-asc">Plus ancien</option>
+                  <option value="amount-desc">Montant décroissant</option>
+                  <option value="amount-asc">Montant croissant</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- DESKTOP TABLE VIEW (hidden on very small mobile) -->
+            <div class="hidden sm:block overflow-x-auto">
+              <table class="w-full text-left border-collapse">
+                <thead>
+                  <tr class="border-b border-slate-800 bg-slate-900/40 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                    <th class="py-3 px-4">Date</th>
+                    <th class="py-3 px-3">Type</th>
+                    <th class="py-3 px-3">Catégorie</th>
+                    <th class="py-3 px-4">Description</th>
+                    <th class="py-3 px-4 text-right">Montant</th>
+                    <th class="py-3 px-4 text-center">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="transactionsTableBody" class="divide-y divide-slate-800/60 text-xs sm:text-sm">
+                  <!-- Injected via JavaScript -->
+                </tbody>
+              </table>
+            </div>
+
+            <!-- MOBILE CARDS VIEW (visible on xs screens) -->
+            <div id="transactionsMobileList" class="sm:hidden divide-y divide-slate-800/80">
+              <!-- Injected via JavaScript -->
+            </div>
+
+            <!-- EMPTY STATE -->
+            <div id="emptyState" class="hidden py-12 px-4 text-center flex-col items-center justify-center">
+              <div class="w-16 h-16 rounded-2xl bg-slate-850 flex items-center justify-center text-slate-500 mb-3 border border-slate-800">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+              </div>
+              <h3 class="text-sm font-bold text-slate-200">Aucune opération trouvée</h3>
+              <p class="text-xs text-slate-400 max-w-xs mt-1">Aucune transaction pour cette période ou ces critères de filtre.</p>
+              <button onclick="openTransactionModal()" class="mt-4 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md transition">
+                + Enregistrer une opération
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- RIGHT: RAPPORT & SYNTHÈSE BUDGETAIRE (4 Cols) -->
+        <section id="reportsSection" class="hidden lg:flex lg:col-span-4 flex-col gap-4">
+          
+          <!-- SYNTHÈSE CARD -->
+          <div class="glass-panel rounded-2xl p-4 sm:p-5 shadow-xl border border-slate-800">
+            <div class="flex items-center justify-between mb-4 pb-2 border-b border-slate-800">
+              <h2 class="text-sm sm:text-base font-bold text-white flex items-center gap-2">
+                <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+                <span>Rapport & Bilan</span>
+              </h2>
+              <span id="reportPeriodBadge" class="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full bg-slate-800 text-slate-300">
+                Période
+              </span>
+            </div>
+
+            <!-- Health Indicator / Budget Rule -->
+            <div id="budgetAdviceBox" class="p-3 rounded-xl bg-slate-900/90 border border-slate-800 mb-4 flex items-start gap-3">
+              <div id="budgetAdviceIcon" class="mt-0.5 p-1 rounded-lg bg-emerald-500/20 text-emerald-400">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <div class="text-xs">
+                <div id="budgetAdviceTitle" class="font-bold text-slate-200">Santé financière optimale</div>
+                <div id="budgetAdviceDesc" class="text-slate-400 mt-0.5">Vos revenus couvrent largement l'ensemble de vos charges courantes.</div>
+              </div>
+            </div>
+
+            <!-- Key Ratios & Stats -->
+            <div class="space-y-3 mb-5">
+              <div class="flex items-center justify-between text-xs">
+                <span class="text-slate-400">Ratio Dépenses / Revenus</span>
+                <span id="ratioExpenseIncome" class="font-bold font-mono text-slate-200">0%</span>
+              </div>
+              <div class="flex items-center justify-between text-xs">
+                <span class="text-slate-400">Dépense moyenne</span>
+                <span id="statAverageExpense" class="font-bold font-mono text-slate-200">0,00 €</span>
+              </div>
+              <div class="flex items-center justify-between text-xs">
+                <span class="text-slate-400">Plus grosse dépense</span>
+                <span id="statHighestExpense" class="font-bold font-mono text-rose-400">0,00 €</span>
+              </div>
+            </div>
+
+            <!-- DÉPENSES PAR CATÉGORIE (Bars) -->
+            <div>
+              <div class="flex items-center justify-between mb-2">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-300">Répartition des Dépenses</h3>
+                <span id="expenseCategoriesTotal" class="text-xs font-mono font-semibold text-rose-400">0 €</span>
+              </div>
+
+              <div id="categoryBreakdownContainer" class="space-y-2.5 max-h-72 overflow-y-auto pr-1">
+                <!-- Injected via JavaScript -->
+              </div>
+            </div>
+          </div>
+
+          <!-- QUICK TIPS / PWA INFO -->
+          <div class="glass-card rounded-2xl p-4 border border-slate-800/80 text-xs text-slate-400 flex flex-col gap-2">
+            <div class="flex items-center gap-2 text-slate-200 font-semibold">
+              <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>Sauvegarde & Confidentialité</span>
+            </div>
+            <p>Toutes les données sont stockées <strong>localement</strong> sur votre appareil (LocalStorage). Aucune fuite de données vers des serveurs tiers.</p>
+            <div class="pt-2 border-t border-slate-800 flex items-center justify-between">
+              <span class="text-[11px] text-slate-500">Mode autonome PWA</span>
+              <button onclick="openExportModal()" class="text-emerald-400 hover:text-emerald-300 underline font-medium">Exporter les données</button>
+            </div>
+          </div>
+        </section>
+
+      </div>
+
+      <!-- FOOTER -->
+      <footer class="mt-6 pt-4 border-t border-slate-800/80 text-center text-xs text-slate-500 flex flex-col sm:flex-row items-center justify-between gap-2">
+        <p>© 2026 Carnet de Revenus et Dépenses — Conçu pour une ergonomie mobile & desktop optimale.</p>
+        <div class="flex items-center gap-3">
+          <span class="inline-flex items-center gap-1 text-slate-400">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            Stockage Local Actif
+          </span>
+          <button onclick="resetDemoData()" class="text-slate-400 hover:text-slate-200 transition">Données initiales</button>
+        </div>
+      </footer>
+
+    </div>
+
+    <!-- ==================== MODALS ==================== -->
+
+    <!-- MODAL 1: AJOUTER / MODIFIER TRANSACTION -->
+    <div id="transactionModal" class="fixed inset-0 z-50 hidden items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-sm">
+      <div class="glass-panel w-full max-w-lg rounded-2xl p-5 sm:p-6 shadow-2xl border border-slate-700/80 animate-modal relative">
+        <!-- Close button -->
+        <button onclick="closeTransactionModal()" class="absolute top-4 right-4 p-1.5 rounded-lg text-slate-400 hover:text-white bg-slate-800/60 hover:bg-slate-800 transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+
+        <h2 id="modalTitle" class="text-lg font-bold text-white mb-4">Nouvelle Opération</h2>
+
+        <form id="transactionForm" onsubmit="handleSaveTransaction(event)" class="space-y-4">
+          <input type="hidden" id="editTransactionId" value="" />
+
+          <!-- TYPE SELECTOR: REVENU / DÉPENSE -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1.5 uppercase tracking-wider">Type d'opération</label>
+            <div class="grid grid-cols-2 gap-2">
+              <button type="button" id="btnTypeExpense" onclick="setFormType('expense')" class="py-2.5 px-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2 border transition border-rose-500/50 bg-rose-500/20 text-rose-300">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M17 13l-5 5m0 0l-5-5m5 5V6" />
+                </svg>
+                <span>Dépense (-)</span>
+              </button>
+              <button type="button" id="btnTypeIncome" onclick="setFormType('income')" class="py-2.5 px-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2 border transition border-slate-700 bg-slate-900/60 text-slate-400 hover:text-white">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M7 11l5-5m0 0l5 5m-5-5v12" />
+                </svg>
+                <span>Revenu (+)</span>
+              </button>
+            </div>
+            <input type="hidden" id="formType" value="expense" />
+          </div>
+
+          <!-- MONTANT -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1.5 uppercase tracking-wider">Montant (€)</label>
+            <div class="relative">
+              <input type="number" id="formAmount" step="0.01" min="0.01" required placeholder="0.00" class="w-full bg-slate-900 border border-slate-700 rounded-xl pl-4 pr-12 py-2.5 text-lg font-bold font-mono text-white focus:outline-none focus:border-emerald-500 transition" />
+              <span class="absolute right-4 top-3 text-slate-400 font-bold font-mono">€</span>
+            </div>
+            <!-- Quick preset amounts -->
+            <div class="flex items-center gap-1.5 mt-2">
+              <span class="text-[11px] text-slate-500">Ajout rapide:</span>
+              <button type="button" onclick="addAmountPreset(10)" class="px-2 py-0.5 rounded-lg bg-slate-800 text-[11px] text-slate-300 hover:bg-slate-700">+10€</button>
+              <button type="button" onclick="addAmountPreset(50)" class="px-2 py-0.5 rounded-lg bg-slate-800 text-[11px] text-slate-300 hover:bg-slate-700">+50€</button>
+              <button type="button" onclick="addAmountPreset(100)" class="px-2 py-0.5 rounded-lg bg-slate-800 text-[11px] text-slate-300 hover:bg-slate-700">+100€</button>
+              <button type="button" onclick="addAmountPreset(500)" class="px-2 py-0.5 rounded-lg bg-slate-800 text-[11px] text-slate-300 hover:bg-slate-700">+500€</button>
+            </div>
+          </div>
+
+          <!-- CATÉGORIE -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1.5 uppercase tracking-wider">Catégorie</label>
+            <select id="formCategory" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-emerald-500 transition">
+              <!-- Dynamically populated according to expense/income -->
+            </select>
+          </div>
+
+          <!-- DATE -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1.5 uppercase tracking-wider">Date de l'opération</label>
+            <input type="date" id="formDate" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-sm text-slate-100 focus:outline-none focus:border-emerald-500 transition" />
+          </div>
+
+          <!-- DESCRIPTION -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1.5 uppercase tracking-wider">Description / Note</label>
+            <input type="text" id="formDescription" required placeholder="Ex: Courses supermarché, Facture EDF, Salaire..." class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-sm text-slate-100 focus:outline-none focus:border-emerald-500 transition" />
+          </div>
+
+          <!-- SUBMIT ACTIONS -->
+          <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
+            <button type="button" onclick="closeTransactionModal()" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 transition">
+              Annuler
+            </button>
+            <button type="submit" id="btnSubmitForm" class="px-5 py-2 rounded-xl text-xs sm:text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-500 shadow-lg shadow-emerald-600/30 transition">
+              Enregistrer
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- MODAL 2: CONFIRMATION SUPPRESSION -->
+    <div id="deleteModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+      <div class="glass-panel w-full max-w-sm rounded-2xl p-5 shadow-2xl border border-rose-500/30 animate-modal text-center">
+        <div class="w-12 h-12 rounded-full bg-rose-500/10 text-rose-400 mx-auto flex items-center justify-center mb-3">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+          </svg>
+        </div>
+        <h3 class="text-base font-bold text-white">Supprimer l'opération ?</h3>
+        <p class="text-xs text-slate-400 mt-1 mb-5">Cette action est irréversible. L'opération sera retirée de vos calculs.</p>
+        <input type="hidden" id="deleteTargetId" value="" />
+        <div class="flex items-center justify-center gap-3">
+          <button onclick="closeDeleteModal()" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-300 bg-slate-800 hover:bg-slate-700 transition">
+            Annuler
+          </button>
+          <button onclick="confirmDeleteTransaction()" class="px-4 py-2 rounded-xl text-xs font-bold text-white bg-rose-600 hover:bg-rose-500 shadow-lg shadow-rose-600/30 transition">
+            Confirmer la suppression
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL 3: EXPORT / IMPORT / SAUVEGARDE -->
+    <div id="exportModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+      <div class="glass-panel w-full max-w-md rounded-2xl p-5 sm:p-6 shadow-2xl border border-slate-700 animate-modal relative">
+        <button onclick="closeExportModal()" class="absolute top-4 right-4 p-1.5 rounded-lg text-slate-400 hover:text-white bg-slate-800/60 transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+
+        <h3 class="text-base font-bold text-white mb-2">Sauvegarde & Exportation</h3>
+        <p class="text-xs text-slate-400 mb-4">Exportez vos écritures financières au format CSV (Excel) ou conservez une sauvegarde JSON.</p>
+
+        <div class="space-y-3">
+          <button onclick="exportToCSV()" class="w-full flex items-center justify-between p-3 rounded-xl bg-slate-900 hover:bg-slate-850 border border-slate-700/80 transition text-left">
+            <div class="flex items-center gap-3">
+              <span class="p-2 rounded-lg bg-emerald-500/10 text-emerald-400">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </span>
+              <div>
+                <div class="text-xs font-bold text-slate-100">Exporter en CSV (Excel)</div>
+                <div class="text-[11px] text-slate-400">Fichier tableur avec Date, Type, Catégorie, Montant</div>
+              </div>
+            </div>
+            <span class="text-xs text-emerald-400 font-semibold">Télécharger</span>
+          </button>
+
+          <button onclick="exportToJSON()" class="w-full flex items-center justify-between p-3 rounded-xl bg-slate-900 hover:bg-slate-850 border border-slate-700/80 transition text-left">
+            <div class="flex items-center gap-3">
+              <span class="p-2 rounded-lg bg-blue-500/10 text-blue-400">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
+                </svg>
+              </span>
+              <div>
+                <div class="text-xs font-bold text-slate-100">Sauvegarde JSON complète</div>
+                <div class="text-[11px] text-slate-400">Idéal pour restaurer vos données sur un autre appareil</div>
+              </div>
+            </div>
+            <span class="text-xs text-blue-400 font-semibold">Télécharger</span>
+          </button>
+
+          <!-- Import JSON file -->
+          <div class="pt-2">
+            <label class="block text-xs font-semibold text-slate-400 mb-1">Restaurer un fichier JSON :</label>
+            <input type="file" id="importJsonFileInput" accept=".json" onchange="handleImportJSON(event)" class="w-full text-xs text-slate-400 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-slate-800 file:text-slate-300 hover:file:bg-slate-700 cursor-pointer" />
+          </div>
+        </div>
+
+        <div class="mt-5 pt-3 border-t border-slate-800 flex justify-end">
+          <button onclick="closeExportModal()" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-300 bg-slate-800 hover:bg-slate-700 transition">
+            Fermer
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL 4: GUIDE INSTALLATION IOS -->
+    <div id="iosInstallModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+      <div class="glass-panel w-full max-w-sm rounded-2xl p-5 shadow-2xl border border-indigo-500/30 animate-modal text-left">
+        <div class="flex items-center gap-3 mb-3">
+          <div class="p-2 rounded-xl bg-indigo-500/20 text-indigo-400">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+            </svg>
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-white">Installer sur iPhone / iPad</h3>
+            <p class="text-xs text-slate-400">Accès direct depuis l'écran d'accueil</p>
+          </div>
+        </div>
+        <ol class="space-y-2.5 text-xs text-slate-300 my-4 bg-slate-900/60 p-3 rounded-xl border border-slate-800">
+          <li class="flex items-start gap-2">
+            <span class="font-bold text-indigo-400">1.</span>
+            <span>Appuyez sur le bouton <strong>Partager</strong> <svg class="w-3.5 h-3.5 inline text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/></svg> en bas de Safari.</span>
+          </li>
+          <li class="flex items-start gap-2">
+            <span class="font-bold text-indigo-400">2.</span>
+            <span>Faites défiler et sélectionnez <strong>Sur l'écran d'accueil</strong>.</span>
+          </li>
+          <li class="flex items-start gap-2">
+            <span class="font-bold text-indigo-400">3.</span>
+            <span>Touchez <strong>Ajouter</strong> en haut à droite.</span>
+          </li>
+        </ol>
+        <button onclick="closeIosInstallModal()" class="w-full py-2.5 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 shadow-md transition">
+          J'ai compris
+        </button>
+      </div>
+    </div>
+
+    <!-- MODAL 5: CENTRE & DIAGNOSTIC PWA -->
+    <div id="pwaInfoModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+      <div class="glass-panel w-full max-w-md rounded-2xl p-5 sm:p-6 shadow-2xl border border-slate-700 animate-modal relative">
+        <button onclick="closePwaInfoModal()" class="absolute top-4 right-4 p-1.5 rounded-lg text-slate-400 hover:text-white bg-slate-800/60 transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-500 flex items-center justify-center text-white shadow-lg shadow-emerald-500/20">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+            </svg>
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-white">Centre Progressive Web App</h3>
+            <p class="text-xs text-slate-400">Statut de conformité & Installation mobile</p>
+          </div>
+        </div>
+
+        <div class="space-y-2.5 mb-5 text-xs">
+          <!-- Standalone state -->
+          <div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-900 border border-slate-800">
+            <span class="text-slate-400">Mode d'exécution :</span>
+            <span id="pwaStatusMode" class="font-bold text-emerald-400 flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+              Détection...
+            </span>
+          </div>
+
+          <!-- Service Worker -->
+          <div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-900 border border-slate-800">
+            <span class="text-slate-400">Service Worker & Cache :</span>
+            <span class="font-bold text-slate-200 flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+              Actif (v2 Hors-ligne)
+            </span>
+          </div>
+
+          <!-- Storage -->
+          <div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-900 border border-slate-800">
+            <span class="text-slate-400">Stockage de données :</span>
+            <span class="font-bold text-slate-200">LocalStorage 100% Local</span>
+          </div>
+
+          <!-- Manifest -->
+          <div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-900 border border-slate-800">
+            <span class="text-slate-400">Manifest & Raccourcis :</span>
+            <span class="font-bold text-slate-200">Standalone (192 & 512px)</span>
+          </div>
+        </div>
+
+        <!-- Action Install in Modal -->
+        <div id="pwaModalInstallContainer" class="mb-4">
+          <button onclick="triggerPwaInstall(); closePwaInfoModal();" class="w-full py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-500 shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2 transition active:scale-95">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            <span>Installer l'application sur cet appareil</span>
+          </button>
+        </div>
+
+        <div class="pt-3 border-t border-slate-800 flex items-center justify-between text-xs">
+          <button onclick="checkPwaUpdates()" class="text-emerald-400 hover:text-emerald-300 font-medium flex items-center gap-1">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            <span>Rechercher mise à jour</span>
+          </button>
+          <button onclick="closePwaInfoModal()" class="px-4 py-1.5 rounded-lg text-slate-300 bg-slate-800 hover:bg-slate-700 transition">
+            Fermer
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TOAST NOTIFICATION -->
+    <div id="toastNotification" class="fixed bottom-5 right-5 z-50 hidden items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs sm:text-sm text-slate-100 shadow-2xl transition-all">
+      <span id="toastIcon">✨</span>
+      <span id="toastMessage">Action effectuée</span>
+    </div>
+
+    <!-- OFFLINE CONNECTIVITY INDICATOR BANNER -->
+    <div id="offlineIndicator" class="fixed bottom-20 md:bottom-5 left-5 z-50 hidden items-center gap-2 px-3.5 py-2 rounded-xl bg-amber-500 text-slate-950 font-bold text-xs shadow-2xl border border-amber-300">
+      <span class="w-2.5 h-2.5 rounded-full bg-slate-950 animate-pulse"></span>
+      <span>Mode Hors-ligne — Données locales sauvegardées</span>
+    </div>
+
+    <!-- MOBILE FIXED BOTTOM NAVIGATION BAR -->
+    <nav class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-900/95 backdrop-blur-xl border-t border-slate-800/90 px-3 py-1.5 flex items-center justify-around shadow-[0_-8px_25px_rgba(0,0,0,0.5)]" style="padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0px));">
+      <!-- 1. Journal des opérations -->
+      <button onclick="setMobileView('transactions'); window.scrollTo({top: 0, behavior: 'smooth'});" id="mobileNavTx" class="flex flex-col items-center gap-1 text-[11px] font-semibold text-emerald-400 transition active:scale-90 p-1">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+        </svg>
+        <span>Journal</span>
+      </button>
+
+      <!-- 2. Rapport & Synthèse -->
+      <button onclick="setMobileView('reports'); window.scrollTo({top: 0, behavior: 'smooth'});" id="mobileNavRep" class="flex flex-col items-center gap-1 text-[11px] font-semibold text-slate-400 hover:text-white transition active:scale-90 p-1">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+        </svg>
+        <span>Bilan</span>
+      </button>
+
+      <!-- 3. FAB NOUVEAU BOUTON CENTRAL -->
+      <button onclick="openTransactionModal()" title="Ajouter une transaction" class="-mt-6 w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-600 via-teal-500 to-emerald-400 text-white flex items-center justify-center shadow-lg shadow-emerald-500/40 ring-4 ring-slate-950 transition active:scale-90 hover:scale-105">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
+        </svg>
+      </button>
+
+      <!-- 4. Sauvegarde / Export -->
+      <button onclick="openExportModal()" class="flex flex-col items-center gap-1 text-[11px] font-semibold text-slate-400 hover:text-white transition active:scale-90 p-1">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+        </svg>
+        <span>Sauvegarde</span>
+      </button>
+
+      <!-- 5. Centre PWA -->
+      <button onclick="openPwaInfoModal()" class="flex flex-col items-center gap-1 text-[11px] font-semibold text-slate-400 hover:text-white transition active:scale-90 p-1">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+        </svg>
+        <span>PWA</span>
+      </button>
+    </nav>
+
+    <!-- ==================== JAVASCRIPT APPLICATION CODE ==================== -->
+    <script>
+      /**
+       * CARNET DE REVENUS ET DÉPENSES
+       * Architecture Single-Page Application (Vanilla JS + LocalStorage + PWA)
+       */
+
+      // --- CONFIGURATION & CATEGORIES ---
+      const EXPENSE_CATEGORIES = [
+        { id: 'alimentation', label: 'Alimentation & Courses', icon: '🛒', color: 'emerald' },
+        { id: 'logement', label: 'Logement & Factures', icon: '🏠', color: 'amber' },
+        { id: 'transport', label: 'Transport & Carburant', icon: '🚗', color: 'blue' },
+        { id: 'loisirs', label: 'Loisirs & Sorties', icon: '🎉', color: 'purple' },
+        { id: 'sante', label: 'Santé & Bien-être', icon: '💊', color: 'rose' },
+        { id: 'shopping', label: 'Shopping & Vêtements', icon: '🛍️', color: 'pink' },
+        { id: 'abonnements', label: 'Abonnements & Services', icon: '📱', color: 'indigo' },
+        { id: 'autre_depense', label: 'Autre Dépense', icon: '📦', color: 'slate' }
+      ];
+
+      const INCOME_CATEGORIES = [
+        { id: 'salaire', label: 'Salaire Principal', icon: '💼', color: 'emerald' },
+        { id: 'freelance', label: 'Freelance & Missions', icon: '💻', color: 'cyan' },
+        { id: 'investissement', label: 'Investissements & Dividendes', icon: '📈', color: 'teal' },
+        { id: 'prime', label: 'Prime & Bonus', icon: '🎁', color: 'amber' },
+        { id: 'vente', label: 'Vente d\'objets', icon: '🏷️', color: 'blue' },
+        { id: 'autre_revenu', label: 'Autre Entrée', icon: '💰', color: 'green' }
+      ];
+
+      // --- STATE MANAGEMENT ---
+      const STORAGE_KEY = 'carnet_budget_app_data_v2';
+      let transactions = [];
+      let currentPeriodFilter = 'month'; // 'today' | 'week' | 'month' | 'all'
+      let selectedDate = new Date().toISOString().split('T')[0];
+      let selectedMonth = selectedDate.substring(0, 7); // 'YYYY-MM'
+      let deferredInstallPrompt = null;
+
+      // --- INITIAL DEMO DATA GENERATOR ---
+      function getInitialDemoTransactions() {
+        const today = new Date();
+        const formatDate = (offsetDays) => {
+          const d = new Date(today);
+          d.setDate(d.getDate() - offsetDays);
+          return d.toISOString().split('T')[0];
+        };
+
+        return [
+          {
+            id: 'demo-1',
+            type: 'income',
+            amount: 2850.00,
+            category: 'salaire',
+            description: 'Salaire mensuel net',
+            date: formatDate(2)
+          },
+          {
+            id: 'demo-2',
+            type: 'expense',
+            amount: 820.00,
+            category: 'logement',
+            description: 'Loyer appartement & charges',
+            date: formatDate(3)
+          },
+          {
+            id: 'demo-3',
+            type: 'expense',
+            amount: 142.50,
+            category: 'alimentation',
+            description: 'Courses hebdomadaires Bio',
+            date: formatDate(1)
+          },
+          {
+            id: 'demo-4',
+            type: 'expense',
+            amount: 68.00,
+            category: 'transport',
+            description: 'Plein de carburant / Pass transport',
+            date: formatDate(0)
+          },
+          {
+            id: 'demo-5',
+            type: 'income',
+            amount: 450.00,
+            category: 'freelance',
+            description: 'Mission création site web client',
+            date: formatDate(0)
+          },
+          {
+            id: 'demo-6',
+            type: 'expense',
+            amount: 54.00,
+            category: 'loisirs',
+            description: 'Dîner restaurant entre amis',
+            date: formatDate(1)
+          },
+          {
+            id: 'demo-7',
+            type: 'expense',
+            amount: 29.99,
+            category: 'abonnements',
+            description: 'Box internet & streaming',
+            date: formatDate(4)
+          }
+        ];
+      }
+
+      // --- INITIALIZATION ---
+      window.addEventListener('DOMContentLoaded', () => {
+        loadData();
+        setupPWA();
+        populateCategoryOptions();
+        
+        // Setup initial dates
+        document.getElementById('formDate').value = selectedDate;
+        document.getElementById('customDatePicker').value = selectedDate;
+        document.getElementById('customMonthPicker').value = selectedMonth;
+
+        // Handle PWA shortcuts from query params
+        const urlParams = new URLSearchParams(window.location.search);
+        const requestedPeriod = urlParams.get('period');
+        if (requestedPeriod && ['today', 'week', 'month', 'all'].includes(requestedPeriod)) {
+          setPeriodFilter(requestedPeriod);
+        } else {
+          setPeriodFilter('month');
+        }
+
+        if (urlParams.get('action') === 'add') {
+          setTimeout(() => openTransactionModal(), 200);
+        }
+      });
+
+      // --- DATA STORAGE & SYNC ---
+      function loadData() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (raw) {
+            transactions = JSON.parse(raw);
+          } else {
+            transactions = getInitialDemoTransactions();
+            saveData(false);
+          }
+        } catch (e) {
+          console.error('Erreur lecture localStorage:', e);
+          transactions = getInitialDemoTransactions();
+        }
+      }
+
+      function saveData(showToast = true) {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(transactions));
+          if (showToast) {
+            triggerToast('Sauvegarde effectuée', '💾');
+          }
+        } catch (e) {
+          console.error('Erreur sauvegarde localStorage:', e);
+        }
+      }
+
+      function resetDemoData() {
+        if (confirm('Voulez-vous réinitialiser les données avec les exemples de démonstration ?')) {
+          transactions = getInitialDemoTransactions();
+          saveData(false);
+          renderApp();
+          triggerToast('Données démo rechargées', '🔄');
+        }
+      }
+
+      // --- HELPERS: FORMATTING & CATEGORIES ---
+      function formatMoney(amount) {
+        return new Intl.NumberFormat('fr-FR', {
+          style: 'currency',
+          currency: 'EUR',
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        }).format(amount);
+      }
+
+      function formatDateDisplay(dateStr) {
+        if (!dateStr) return '';
+        const parts = dateStr.split('-');
+        if (parts.length !== 3) return dateStr;
+        const d = new Date(parts[0], parts[1] - 1, parts[2]);
+        return new Intl.DateTimeFormat('fr-FR', {
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric'
+        }).format(d);
+      }
+
+      function getCategoryInfo(categoryId, type) {
+        const pool = type === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
+        const found = pool.find(c => c.id === categoryId);
+        if (found) return found;
+        return { id: categoryId, label: categoryId || 'Général', icon: '💳', color: 'slate' };
+      }
+
+      // --- PERIOD FILTERING LOGIC ---
+      function setPeriodFilter(period) {
+        currentPeriodFilter = period;
+        
+        // Update tab buttons style
+        document.querySelectorAll('.period-tab').forEach(btn => {
+          btn.classList.remove('bg-emerald-600', 'text-white', 'shadow-md');
+          btn.classList.add('text-slate-400');
+        });
+        const activeTab = document.getElementById(`tab-${period}`);
+        if (activeTab) {
+          activeTab.classList.remove('text-slate-400');
+          activeTab.classList.add('bg-emerald-600', 'text-white', 'shadow-md');
+        }
+
+        // Toggle visibility of specific pickers
+        const datePicker = document.getElementById('customDatePicker');
+        const monthPicker = document.getElementById('customMonthPicker');
+        
+        datePicker.classList.add('hidden');
+        monthPicker.classList.add('hidden');
+
+        if (period === 'today') {
+          datePicker.classList.remove('hidden');
+        } else if (period === 'month') {
+          monthPicker.classList.remove('hidden');
+        }
+
+        updatePeriodLabel();
+        renderApp();
+      }
+
+      function onCustomDateChange(newDate) {
+        if (newDate) {
+          selectedDate = newDate;
+          updatePeriodLabel();
+          renderApp();
+        }
+      }
+
+      function onCustomMonthChange(newMonth) {
+        if (newMonth) {
+          selectedMonth = newMonth;
+          updatePeriodLabel();
+          renderApp();
+        }
+      }
+
+      function updatePeriodLabel() {
+        const textElem = document.getElementById('periodText');
+        const reportBadge = document.getElementById('reportPeriodBadge');
+
+        if (currentPeriodFilter === 'today') {
+          const formatted = formatDateDisplay(selectedDate);
+          textElem.innerText = `Jour : ${formatted}`;
+          reportBadge.innerText = `Bilan du ${formatted}`;
+        } else if (currentPeriodFilter === 'week') {
+          const { start, end } = getCurrentWeekRange();
+          textElem.innerText = `Semaine : ${formatDateDisplay(start)} au ${formatDateDisplay(end)}`;
+          reportBadge.innerText = 'Bilan de la Semaine';
+        } else if (currentPeriodFilter === 'month') {
+          const [year, month] = selectedMonth.split('-');
+          const monthName = new Intl.DateTimeFormat('fr-FR', { month: 'long', year: 'numeric' }).format(new Date(year, month - 1, 1));
+          textElem.innerText = `Mois : ${monthName.charAt(0).toUpperCase() + monthName.slice(1)}`;
+          reportBadge.innerText = `Bilan de ${monthName}`;
+        } else {
+          textElem.innerText = 'Toutes les écritures';
+          reportBadge.innerText = 'Bilan Global';
+        }
+      }
+
+      function getCurrentWeekRange() {
+        const now = new Date();
+        const day = now.getDay();
+        const diffToMonday = (day === 0 ? -6 : 1) - day;
+        
+        const monday = new Date(now);
+        monday.setDate(now.getDate() + diffToMonday);
+        
+        const sunday = new Date(monday);
+        sunday.setDate(monday.getDate() + 6);
+
+        return {
+          start: monday.toISOString().split('T')[0],
+          end: sunday.toISOString().split('T')[0]
+        };
+      }
+
+      function getFilteredTransactions() {
+        const query = (document.getElementById('searchInput')?.value || '').toLowerCase().trim();
+        const typeFilter = document.getElementById('typeFilter')?.value || 'all';
+        const categoryFilter = document.getElementById('categoryFilter')?.value || 'all';
+
+        return transactions.filter(t => {
+          // 1. Period filter
+          if (currentPeriodFilter === 'today') {
+            if (t.date !== selectedDate) return false;
+          } else if (currentPeriodFilter === 'week') {
+            const { start, end } = getCurrentWeekRange();
+            if (t.date < start || t.date > end) return false;
+          } else if (currentPeriodFilter === 'month') {
+            if (!t.date.startsWith(selectedMonth)) return false;
+          }
+
+          // 2. Type filter
+          if (typeFilter !== 'all' && t.type !== typeFilter) return false;
+
+          // 3. Category filter
+          if (categoryFilter !== 'all' && t.category !== categoryFilter) return false;
+
+          // 4. Search query
+          if (query) {
+            const matchDesc = (t.description || '').toLowerCase().includes(query);
+            const cat = getCategoryInfo(t.category, t.type);
+            const matchCat = cat.label.toLowerCase().includes(query);
+            const matchAmount = String(t.amount).includes(query);
+            if (!matchDesc && !matchCat && !matchAmount) return false;
+          }
+
+          return true;
+        });
+      }
+
+      // --- RENDERING PIPELINE ---
+      function renderApp() {
+        const filtered = getFilteredTransactions();
+        sortTransactions(filtered);
+
+        renderKPIs(filtered);
+        renderTable(filtered);
+        renderReportAndBreakdown(filtered);
+      }
+
+      function sortTransactions(items) {
+        const sortMode = document.getElementById('sortSelect')?.value || 'date-desc';
+        items.sort((a, b) => {
+          if (sortMode === 'date-desc') return b.date.localeCompare(a.date) || b.id.localeCompare(a.id);
+          if (sortMode === 'date-asc') return a.date.localeCompare(b.date) || a.id.localeCompare(b.id);
+          if (sortMode === 'amount-desc') return b.amount - a.amount;
+          if (sortMode === 'amount-asc') return a.amount - b.amount;
+          return 0;
+        });
+      }
+
+      function applyFilters() {
+        renderApp();
+      }
+
+      function resetFilters() {
+        if (document.getElementById('searchInput')) document.getElementById('searchInput').value = '';
+        if (document.getElementById('typeFilter')) document.getElementById('typeFilter').value = 'all';
+        if (document.getElementById('categoryFilter')) document.getElementById('categoryFilter').value = 'all';
+        if (document.getElementById('sortSelect')) document.getElementById('sortSelect').value = 'date-desc';
+        updateQuickChipsState('all');
+        renderApp();
+      }
+
+      // --- MOBILE VIEW CONTROLS ---
+      let currentMobileView = 'transactions';
+
+      function setMobileView(view) {
+        currentMobileView = view;
+        const txSection = document.getElementById('transactionsSection');
+        const repSection = document.getElementById('reportsSection');
+        const btnTx = document.getElementById('mobileViewTabTransactions');
+        const btnRep = document.getElementById('mobileViewTabReports');
+        const navTx = document.getElementById('mobileNavTx');
+        const navRep = document.getElementById('mobileNavRep');
+
+        if (view === 'transactions') {
+          txSection?.classList.remove('hidden');
+          repSection?.classList.add('hidden');
+          repSection?.classList.add('lg:flex');
+
+          btnTx?.classList.add('bg-emerald-600', 'text-white', 'shadow-md');
+          btnTx?.classList.remove('text-slate-400');
+          btnRep?.classList.remove('bg-emerald-600', 'text-white', 'shadow-md');
+          btnRep?.classList.add('text-slate-400');
+
+          navTx?.classList.add('text-emerald-400');
+          navTx?.classList.remove('text-slate-400');
+          navRep?.classList.remove('text-emerald-400');
+          navRep?.classList.add('text-slate-400');
+        } else {
+          txSection?.classList.add('hidden');
+          txSection?.classList.add('lg:flex');
+          repSection?.classList.remove('hidden');
+
+          btnRep?.classList.add('bg-emerald-600', 'text-white', 'shadow-md');
+          btnRep?.classList.remove('text-slate-400');
+          btnTx?.classList.remove('bg-emerald-600', 'text-white', 'shadow-md');
+          btnTx?.classList.add('text-slate-400');
+
+          navRep?.classList.add('text-emerald-400');
+          navRep?.classList.remove('text-slate-400');
+          navTx?.classList.remove('text-emerald-400');
+          navTx?.classList.add('text-slate-400');
+        }
+      }
+
+      function selectQuickCategory(catId) {
+        const catSelect = document.getElementById('categoryFilter');
+        if (catSelect) {
+          catSelect.value = catId;
+        }
+        updateQuickChipsState(catId);
+        renderApp();
+      }
+
+      function updateQuickChipsState(activeCatId) {
+        document.querySelectorAll('.quick-cat-chip').forEach(chip => {
+          chip.className = 'quick-cat-chip shrink-0 px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 font-medium border border-slate-800 transition active:scale-95';
+        });
+        const activeChip = document.getElementById(`chip-cat-${activeCatId}`);
+        if (activeChip) {
+          activeChip.className = 'quick-cat-chip shrink-0 px-2.5 py-1 rounded-lg bg-emerald-600 text-white font-medium shadow transition active:scale-95';
+        }
+      }
+
+      // --- 1. RENDER KPIS ---
+      function renderKPIs(items) {
+        let totalIncome = 0;
+        let totalExpense = 0;
+        let incomeCount = 0;
+        let expenseCount = 0;
+
+        items.forEach(t => {
+          if (t.type === 'income') {
+            totalIncome += Number(t.amount);
+            incomeCount++;
+          } else {
+            totalExpense += Number(t.amount);
+            expenseCount++;
+          }
+        });
+
+        const netBalance = totalIncome - totalExpense;
+
+        // KPI Net Card
+        const kpiNetCard = document.getElementById('kpiNetCard');
+        const kpiNetValue = document.getElementById('kpiNetValue');
+        const kpiNetBadge = document.getElementById('kpiNetBadge');
+
+        kpiNetValue.innerText = formatMoney(netBalance);
+
+        if (netBalance > 0) {
+          kpiNetCard.className = 'glass-panel rounded-2xl p-4 sm:p-5 flex flex-col justify-between transition-all duration-300 relative overflow-hidden group border-emerald-500/30 glow-emerald';
+          kpiNetValue.className = 'text-xl sm:text-3xl font-extrabold tracking-tight font-mono text-emerald-400';
+          kpiNetBadge.className = 'px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40';
+          kpiNetBadge.innerText = 'Excédent';
+        } else if (netBalance < 0) {
+          kpiNetCard.className = 'glass-panel rounded-2xl p-4 sm:p-5 flex flex-col justify-between transition-all duration-300 relative overflow-hidden group border-rose-500/30 glow-rose';
+          kpiNetValue.className = 'text-xl sm:text-3xl font-extrabold tracking-tight font-mono text-rose-400';
+          kpiNetBadge.className = 'px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40';
+          kpiNetBadge.innerText = 'Déficit';
+        } else {
+          kpiNetCard.className = 'glass-panel rounded-2xl p-4 sm:p-5 flex flex-col justify-between transition-all duration-300 relative overflow-hidden group border-slate-700';
+          kpiNetValue.className = 'text-xl sm:text-3xl font-extrabold tracking-tight font-mono text-slate-200';
+          kpiNetBadge.className = 'px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 text-slate-300';
+          kpiNetBadge.innerText = 'Équilibre';
+        }
+
+        // Total Income
+        document.getElementById('kpiIncomeValue').innerText = `+${formatMoney(totalIncome)}`;
+        document.getElementById('kpiIncomeCount').innerText = `${incomeCount} rentrée(s)`;
+
+        // Total Expense
+        document.getElementById('kpiExpenseValue').innerText = `-${formatMoney(totalExpense)}`;
+        document.getElementById('kpiExpenseCount').innerText = `${expenseCount} sortie(s)`;
+
+        // Savings Rate
+        const kpiSavingsRate = document.getElementById('kpiSavingsRate');
+        const kpiSavingsProgress = document.getElementById('kpiSavingsProgress');
+        const kpiSavingsComment = document.getElementById('kpiSavingsComment');
+
+        if (totalIncome > 0) {
+          const savingsPercentage = Math.max(0, Math.round(((totalIncome - totalExpense) / totalIncome) * 100));
+          kpiSavingsRate.innerText = `${savingsPercentage}%`;
+          kpiSavingsProgress.style.width = `${Math.min(100, savingsPercentage)}%`;
+
+          if (savingsPercentage >= 20) {
+            kpiSavingsProgress.className = 'bg-emerald-500 h-1.5 rounded-full transition-all duration-500';
+            kpiSavingsComment.innerText = 'Excellente épargne';
+            kpiSavingsComment.className = 'text-[10px] font-medium text-emerald-400';
+          } else if (savingsPercentage > 0) {
+            kpiSavingsProgress.className = 'bg-blue-500 h-1.5 rounded-full transition-all duration-500';
+            kpiSavingsComment.innerText = 'Épargne modérée';
+            kpiSavingsComment.className = 'text-[10px] font-medium text-blue-400';
+          } else {
+            kpiSavingsProgress.className = 'bg-rose-500 h-1.5 rounded-full transition-all duration-500';
+            kpiSavingsComment.innerText = 'Déficit budgétaire';
+            kpiSavingsComment.className = 'text-[10px] font-medium text-rose-400';
+          }
+        } else {
+          kpiSavingsRate.innerText = '0%';
+          kpiSavingsProgress.style.width = '0%';
+          kpiSavingsComment.innerText = 'Aucun revenu saisi';
+          kpiSavingsComment.className = 'text-[10px] font-medium text-slate-400';
+        }
+      }
+
+      // --- 2. RENDER TABLE & MOBILE CARDS ---
+      function renderTable(items) {
+        const tbody = document.getElementById('transactionsTableBody');
+        const mobileList = document.getElementById('transactionsMobileList');
+        const emptyState = document.getElementById('emptyState');
+        const countBadge = document.getElementById('transactionCountBadge');
+        const mobileCountBadge = document.getElementById('mobileCountBadge');
+
+        countBadge.innerText = items.length;
+        if (mobileCountBadge) mobileCountBadge.innerText = items.length;
+        countBadge.classList.remove('tx-badge-pulse');
+        void countBadge.offsetWidth; // Trigger reflow for animation restart
+        countBadge.classList.add('tx-badge-pulse');
+
+        if (items.length === 0) {
+          tbody.innerHTML = '';
+          mobileList.innerHTML = '';
+          emptyState.classList.remove('hidden');
+          emptyState.classList.add('flex');
+          return;
+        }
+
+        emptyState.classList.add('hidden');
+        emptyState.classList.remove('flex');
+
+        // DESKTOP TABLE ROWS
+        let tableHtml = '';
+        let mobileHtml = '';
+
+        items.forEach((t, index) => {
+          const isIncome = t.type === 'income';
+          const cat = getCategoryInfo(t.category, t.type);
+          const formattedDate = formatDateDisplay(t.date);
+          const formattedAmount = `${isIncome ? '+' : '-'}${formatMoney(t.amount)}`;
+          const amountColorClass = isIncome ? 'text-emerald-400' : 'text-rose-400';
+          const typeBadge = isIncome
+            ? '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">Revenu</span>'
+            : '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/15 text-rose-400 border border-rose-500/30">Dépense</span>';
+
+          // Staggered slide-in delay (capped at 360ms to keep interface ultra reactive)
+          const animDelay = Math.min(index * 30, 360);
+
+          // Desktop Row with Slide-in
+          tableHtml += `
+            <tr class="tx-row-enter hover:bg-slate-850/70 hover:translate-x-0.5 transition-all group duration-200 border-l-2 border-transparent hover:border-emerald-500/50" style="animation-delay: ${animDelay}ms;">
+              <td class="py-3 px-4 text-slate-300 font-mono text-xs whitespace-nowrap">${formattedDate}</td>
+              <td class="py-3 px-3 whitespace-nowrap">${typeBadge}</td>
+              <td class="py-3 px-3 whitespace-nowrap">
+                <span class="inline-flex items-center gap-1.5 text-xs text-slate-200">
+                  <span>${cat.icon}</span>
+                  <span class="font-medium">${escapeHtml(cat.label)}</span>
+                </span>
+              </td>
+              <td class="py-3 px-4 text-slate-200 font-medium max-w-xs truncate" title="${escapeHtml(t.description)}">
+                ${escapeHtml(t.description)}
+              </td>
+              <td class="py-3 px-4 text-right font-mono font-bold ${amountColorClass} whitespace-nowrap">
+                ${formattedAmount}
+              </td>
+              <td class="py-3 px-4 text-center whitespace-nowrap">
+                <div class="flex items-center justify-center gap-1.5 opacity-90 group-hover:opacity-100 transition-opacity">
+                  <button onclick="editTransaction('${t.id}')" title="Modifier" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition active:scale-90">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                    </svg>
+                  </button>
+                  <button onclick="promptDeleteTransaction('${t.id}')" title="Supprimer" class="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-900/60 text-slate-300 hover:text-rose-300 transition active:scale-90">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          `;
+
+          // Mobile Card with Slide-in
+          mobileHtml += `
+            <div class="tx-card-enter p-3.5 hover:bg-slate-900/90 hover:translate-x-1 transition-all duration-200 flex items-center justify-between gap-3 border-l-2 border-transparent hover:border-emerald-500/50" style="animation-delay: ${animDelay}ms;">
+              <div class="flex items-start gap-3 min-w-0">
+                <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${isIncome ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'} text-base transition-transform group-hover:scale-105">
+                  ${cat.icon}
+                </div>
+                <div class="min-w-0">
+                  <div class="text-xs font-bold text-white truncate">${escapeHtml(t.description)}</div>
+                  <div class="flex items-center gap-1.5 text-[11px] text-slate-400 mt-0.5">
+                    <span>${escapeHtml(cat.label)}</span>
+                    <span>•</span>
+                    <span class="font-mono">${formattedDate}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="flex items-center gap-2 shrink-0">
+                <div class="text-right">
+                  <div class="text-xs font-bold font-mono ${amountColorClass}">${formattedAmount}</div>
+                </div>
+                <div class="flex items-center gap-1">
+                  <button onclick="editTransaction('${t.id}')" class="p-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-white transition active:scale-90">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                    </svg>
+                  </button>
+                  <button onclick="promptDeleteTransaction('${t.id}')" class="p-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-rose-400 transition active:scale-90">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          `;
+        });
+
+        tbody.innerHTML = tableHtml;
+        mobileList.innerHTML = mobileHtml;
+      }
+
+      // --- 3. RENDER RAPPORT & SYNTHÈSE ANALYTIQUE ---
+      function renderReportAndBreakdown(items) {
+        let totalIncome = 0;
+        let totalExpense = 0;
+        const expenseCategoryMap = {};
+        let highestExpense = 0;
+        let expenseCount = 0;
+
+        items.forEach(t => {
+          const amt = Number(t.amount);
+          if (t.type === 'income') {
+            totalIncome += amt;
+          } else {
+            totalExpense += amt;
+            expenseCount++;
+            if (amt > highestExpense) highestExpense = amt;
+            expenseCategoryMap[t.category] = (expenseCategoryMap[t.category] || 0) + amt;
+          }
+        });
+
+        // Key stats
+        const ratioElem = document.getElementById('ratioExpenseIncome');
+        const statAvgElem = document.getElementById('statAverageExpense');
+        const statHighElem = document.getElementById('statHighestExpense');
+        const adviceTitle = document.getElementById('budgetAdviceTitle');
+        const adviceDesc = document.getElementById('budgetAdviceDesc');
+        const adviceIcon = document.getElementById('budgetAdviceIcon');
+        const expCatTotal = document.getElementById('expenseCategoriesTotal');
+
+        expCatTotal.innerText = formatMoney(totalExpense);
+        statHighElem.innerText = formatMoney(highestExpense);
+        statAvgElem.innerText = expenseCount > 0 ? formatMoney(totalExpense / expenseCount) : '0,00 €';
+
+        if (totalIncome > 0) {
+          const ratio = Math.round((totalExpense / totalIncome) * 100);
+          ratioElem.innerText = `${ratio}%`;
+
+          if (ratio <= 60) {
+            adviceTitle.innerText = 'Excellente gestion financière';
+            adviceDesc.innerText = `Vos dépenses représentent seulement ${ratio}% de vos revenus. Vous épargnez vigoureusement.`;
+            adviceIcon.className = 'mt-0.5 p-1 rounded-lg bg-emerald-500/20 text-emerald-400';
+          } else if (ratio <= 90) {
+            adviceTitle.innerText = 'Équilibre maîtrisé';
+            adviceDesc.innerText = `Vos dépenses absorbent ${ratio}% de vos rentrées. Reste à vivre confortable.`;
+            adviceIcon.className = 'mt-0.5 p-1 rounded-lg bg-blue-500/20 text-blue-400';
+          } else if (ratio <= 100) {
+            adviceTitle.innerText = 'Attention, marge faible';
+            adviceDesc.innerText = 'Vos dépenses frôlent la totalité de vos revenus disponibles. Limitez les achats superflus.';
+            adviceIcon.className = 'mt-0.5 p-1 rounded-lg bg-amber-500/20 text-amber-400';
+          } else {
+            adviceTitle.innerText = 'Déficit budgétaire actif';
+            adviceDesc.innerText = 'Vos dépenses dépassent vos revenus sur cette période. Réduisez vos postes non essentiels.';
+            adviceIcon.className = 'mt-0.5 p-1 rounded-lg bg-rose-500/20 text-rose-400';
+          }
+        } else {
+          ratioElem.innerText = totalExpense > 0 ? '> 100%' : '0%';
+          adviceTitle.innerText = totalExpense > 0 ? 'Dépenses sans revenus saisis' : 'Aucune opération';
+          adviceDesc.innerText = totalExpense > 0 ? 'Ajoutez vos rentrées d\'argent pour calculer le ratio de couverture.' : 'Enregistrez vos premières opérations pour voir le bilan.';
+          adviceIcon.className = 'mt-0.5 p-1 rounded-lg bg-slate-800 text-slate-400';
+        }
+
+        // Category breakdown progress bars
+        const breakdownContainer = document.getElementById('categoryBreakdownContainer');
+        const sortedCats = Object.entries(expenseCategoryMap).sort((a, b) => b[1] - a[1]);
+
+        if (sortedCats.length === 0) {
+          breakdownContainer.innerHTML = `
+            <div class="py-6 text-center text-xs text-slate-500">
+              Aucune dépense enregistrée sur cette période.
+            </div>
+          `;
+          return;
+        }
+
+        let breakdownHtml = '';
+        sortedCats.forEach(([catId, amount]) => {
+          const cat = getCategoryInfo(catId, 'expense');
+          const pct = totalExpense > 0 ? Math.round((amount / totalExpense) * 100) : 0;
+          breakdownHtml += `
+            <div class="group">
+              <div class="flex items-center justify-between text-xs mb-1">
+                <span class="flex items-center gap-1.5 text-slate-300">
+                  <span>${cat.icon}</span>
+                  <span class="font-medium">${escapeHtml(cat.label)}</span>
+                </span>
+                <span class="font-mono text-slate-200 font-semibold">${formatMoney(amount)} <span class="text-slate-500 font-normal">(${pct}%)</span></span>
+              </div>
+              <div class="w-full bg-slate-900 rounded-full h-1.5 overflow-hidden border border-slate-800">
+                <div class="bg-gradient-to-r from-rose-500 to-amber-500 h-1.5 rounded-full transition-all duration-500" style="width: ${pct}%"></div>
+              </div>
+            </div>
+          `;
+        });
+
+        breakdownContainer.innerHTML = breakdownHtml;
+      }
+
+      // --- 4. FORM & MODAL ACTIONS ---
+      function populateCategoryOptions() {
+        const filterSelect = document.getElementById('categoryFilter');
+        filterSelect.innerHTML = '<option value="all">Toutes catégories</option>';
+
+        // Groups in filter dropdown
+        const expenseGroup = document.createElement('optgroup');
+        expenseGroup.label = '--- Dépenses ---';
+        EXPENSE_CATEGORIES.forEach(c => {
+          const opt = document.createElement('option');
+          opt.value = c.id;
+          opt.textContent = `${c.icon} ${c.label}`;
+          expenseGroup.appendChild(opt);
+        });
+        filterSelect.appendChild(expenseGroup);
+
+        const incomeGroup = document.createElement('optgroup');
+        incomeGroup.label = '--- Revenus ---';
+        INCOME_CATEGORIES.forEach(c => {
+          const opt = document.createElement('option');
+          opt.value = c.id;
+          opt.textContent = `${c.icon} ${c.label}`;
+          incomeGroup.appendChild(opt);
+        });
+        filterSelect.appendChild(incomeGroup);
+      }
+
+      function updateFormCategorySelect(type, selectedCategory = '') {
+        const select = document.getElementById('formCategory');
+        select.innerHTML = '';
+        const list = type === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
+
+        list.forEach(c => {
+          const opt = document.createElement('option');
+          opt.value = c.id;
+          opt.textContent = `${c.icon} ${c.label}`;
+          if (c.id === selectedCategory) opt.selected = true;
+          select.appendChild(opt);
+        });
+      }
+
+      function setFormType(type) {
+        document.getElementById('formType').value = type;
+        const btnExp = document.getElementById('btnTypeExpense');
+        const btnInc = document.getElementById('btnTypeIncome');
+
+        if (type === 'expense') {
+          btnExp.className = 'py-2.5 px-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2 border transition border-rose-500/50 bg-rose-500/20 text-rose-300';
+          btnInc.className = 'py-2.5 px-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2 border transition border-slate-700 bg-slate-900/60 text-slate-400 hover:text-white';
+        } else {
+          btnInc.className = 'py-2.5 px-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2 border transition border-emerald-500/50 bg-emerald-500/20 text-emerald-300';
+          btnExp.className = 'py-2.5 px-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2 border transition border-slate-700 bg-slate-900/60 text-slate-400 hover:text-white';
+        }
+
+        updateFormCategorySelect(type);
+      }
+
+      function addAmountPreset(delta) {
+        const input = document.getElementById('formAmount');
+        const current = parseFloat(input.value) || 0;
+        input.value = (current + delta).toFixed(2);
+      }
+
+      function openTransactionModal(editId = null) {
+        const modal = document.getElementById('transactionModal');
+        const form = document.getElementById('transactionForm');
+        const titleElem = document.getElementById('modalTitle');
+        const submitBtn = document.getElementById('btnSubmitForm');
+
+        form.reset();
+
+        if (editId) {
+          const item = transactions.find(t => t.id === editId);
+          if (!item) return;
+
+          titleElem.innerText = 'Modifier l\'Opération';
+          submitBtn.innerText = 'Mettre à jour';
+          document.getElementById('editTransactionId').value = item.id;
+          setFormType(item.type);
+          document.getElementById('formAmount').value = item.amount;
+          document.getElementById('formDate').value = item.date;
+          document.getElementById('formDescription').value = item.description;
+          updateFormCategorySelect(item.type, item.category);
+        } else {
+          titleElem.innerText = 'Nouvelle Opération';
+          submitBtn.innerText = 'Enregistrer';
+          document.getElementById('editTransactionId').value = '';
+          setFormType('expense');
+          document.getElementById('formDate').value = new Date().toISOString().split('T')[0];
+        }
+
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        setTimeout(() => document.getElementById('formAmount').focus(), 100);
+      }
+
+      function closeTransactionModal() {
+        const modal = document.getElementById('transactionModal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+
+      function handleSaveTransaction(e) {
+        e.preventDefault();
+        const editId = document.getElementById('editTransactionId').value;
+        const type = document.getElementById('formType').value;
+        const amount = parseFloat(document.getElementById('formAmount').value);
+        const category = document.getElementById('formCategory').value;
+        const date = document.getElementById('formDate').value;
+        const description = document.getElementById('formDescription').value.trim();
+
+        if (isNaN(amount) || amount <= 0) {
+          alert('Veuillez saisir un montant valide supérieur à 0.');
+          return;
+        }
+
+        if (editId) {
+          // Update existing
+          const idx = transactions.findIndex(t => t.id === editId);
+          if (idx !== -1) {
+            transactions[idx] = {
+              ...transactions[idx],
+              type,
+              amount,
+              category,
+              date,
+              description
+            };
+            triggerToast('Opération mise à jour', '✏️');
+          }
+        } else {
+          // Create new
+          const newEntry = {
+            id: 'tx-' + Date.now() + '-' + Math.random().toString(36).substring(2, 7),
+            type,
+            amount,
+            category,
+            date,
+            description
+          };
+          transactions.unshift(newEntry);
+          triggerToast('Opération enregistrée', '✅');
+        }
+
+        saveData(false);
+        closeTransactionModal();
+        renderApp();
+      }
+
+      function editTransaction(id) {
+        openTransactionModal(id);
+      }
+
+      // --- 5. DELETE MODAL ---
+      function promptDeleteTransaction(id) {
+        document.getElementById('deleteTargetId').value = id;
+        const modal = document.getElementById('deleteModal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      }
+
+      function closeDeleteModal() {
+        const modal = document.getElementById('deleteModal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+
+      function confirmDeleteTransaction() {
+        const id = document.getElementById('deleteTargetId').value;
+        if (!id) return;
+        transactions = transactions.filter(t => t.id !== id);
+        saveData(false);
+        closeDeleteModal();
+        renderApp();
+        triggerToast('Opération supprimée', '🗑️');
+      }
+
+      // --- 6. EXPORT / IMPORT MODAL ---
+      function openExportModal() {
+        const modal = document.getElementById('exportModal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      }
+
+      function closeExportModal() {
+        const modal = document.getElementById('exportModal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+
+      function exportToCSV() {
+        if (transactions.length === 0) {
+          alert('Aucune écriture à exporter.');
+          return;
+        }
+
+        const headers = ['Date', 'Type', 'Catégorie', 'Description', 'Montant'];
+        const rows = transactions.map(t => [
+          `"${t.date}"`,
+          `"${t.type === 'income' ? 'Revenu' : 'Dépense'}"`,
+          `"${escapeCsv(getCategoryInfo(t.category, t.type).label)}"`,
+          `"${escapeCsv(t.description)}"`,
+          `"${t.amount}"`
+        ]);
+
+        const csvContent = '\uFEFF' + [headers.join(';'), ...rows.map(r => r.join(';'))].join('\r\n');
+        downloadFile(csvContent, `carnet_budget_${new Date().toISOString().split('T')[0]}.csv`, 'text/csv;charset=utf-8;');
+        triggerToast('Fichier CSV généré', '📊');
+      }
+
+      function exportToJSON() {
+        const dataStr = JSON.stringify(transactions, null, 2);
+        downloadFile(dataStr, `carnet_budget_backup_${new Date().toISOString().split('T')[0]}.json`, 'application/json');
+        triggerToast('Sauvegarde JSON générée', '📦');
+      }
+
+      function handleImportJSON(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            const imported = JSON.parse(e.target.result);
+            if (Array.isArray(imported)) {
+              if (confirm(`Restaurer ${imported.length} opération(s) ? Cela fusionnera avec vos données existantes.`)) {
+                // Merge by ID avoiding duplicates
+                const map = new Map();
+                transactions.forEach(t => map.set(t.id, t));
+                imported.forEach(t => map.set(t.id || ('tx-' + Date.now() + Math.random()), t));
+                transactions = Array.from(map.values());
+                saveData(false);
+                renderApp();
+                closeExportModal();
+                triggerToast('Importation réussie', '🎉');
+              }
+            } else {
+              alert('Format de fichier JSON invalide.');
+            }
+          } catch (err) {
+            alert('Erreur lors de la lecture du fichier JSON: ' + err.message);
+          }
+        };
+        reader.readAsText(file);
+      }
+
+      function downloadFile(content, fileName, mimeType) {
+        const blob = new Blob([content], { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
+
+      function escapeCsv(text) {
+        return (text || '').replace(/"/g, '""');
+      }
+
+      function escapeHtml(string) {
+        const div = document.createElement('div');
+        div.innerText = string || '';
+        return div.innerHTML;
+      }
+
+      // --- 7. TOAST NOTIFICATIONS ---
+      let toastTimeout = null;
+      function triggerToast(message, icon = '✨') {
+        const toast = document.getElementById('toastNotification');
+        document.getElementById('toastMessage').innerText = message;
+        document.getElementById('toastIcon').innerText = icon;
+
+        toast.classList.remove('hidden');
+        toast.classList.add('flex');
+
+        if (toastTimeout) clearTimeout(toastTimeout);
+        toastTimeout = setTimeout(() => {
+          toast.classList.add('hidden');
+          toast.classList.remove('flex');
+        }, 2600);
+      }
+
+      // --- 8. PROGRESSIVE WEB APP (PWA) INTEGRATION ---
+      function setupPWA() {
+        // Detect Standalone
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+        const isIOS = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
+
+        // Dynamic Manifest Generation via Blob URL
+        generateAndAttachManifest();
+
+        // Register Service Worker
+        registerDynamicServiceWorker();
+
+        // Listen for online/offline connectivity
+        setupOnlineOfflineListener();
+
+        // Listen for beforeinstallprompt
+        window.addEventListener('beforeinstallprompt', (e) => {
+          e.preventDefault();
+          deferredInstallPrompt = e;
+          
+          if (!isStandalone) {
+            const btnDesktop = document.getElementById('btnPwaInstall');
+            const btnMobile = document.getElementById('btnPwaInstallMobile');
+            if (btnDesktop) btnDesktop.classList.remove('hidden');
+            if (btnMobile) btnMobile.classList.remove('hidden');
+          }
+        });
+
+        window.addEventListener('appinstalled', () => {
+          deferredInstallPrompt = null;
+          document.getElementById('btnPwaInstall')?.classList.add('hidden');
+          document.getElementById('btnPwaInstallMobile')?.classList.add('hidden');
+          triggerToast('Application installée avec succès !', '📱');
+        });
+
+        // If iOS and not standalone, show install button for guidance
+        if (isIOS && !isStandalone) {
+          const btnDesktop = document.getElementById('btnPwaInstall');
+          const btnMobile = document.getElementById('btnPwaInstallMobile');
+          if (btnDesktop) {
+            btnDesktop.classList.remove('hidden');
+            btnDesktop.title = "Installer sur iOS";
+          }
+          if (btnMobile) btnMobile.classList.remove('hidden');
+        }
+      }
+
+      function setupOnlineOfflineListener() {
+        const offlineIndicator = document.getElementById('offlineIndicator');
+        const updateStatus = () => {
+          if (navigator.onLine) {
+            offlineIndicator?.classList.add('hidden');
+            offlineIndicator?.classList.remove('flex');
+          } else {
+            offlineIndicator?.classList.remove('hidden');
+            offlineIndicator?.classList.add('flex');
+          }
+        };
+
+        window.addEventListener('online', () => {
+          updateStatus();
+          triggerToast('Connexion rétablie !', '🟢');
+        });
+
+        window.addEventListener('offline', () => {
+          updateStatus();
+          triggerToast('Mode Hors-ligne activé', '📡');
+        });
+
+        updateStatus();
+      }
+
+      async function triggerPwaInstall() {
+        const isIOS = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
+        
+        if (deferredInstallPrompt) {
+          deferredInstallPrompt.prompt();
+          const { outcome } = await deferredInstallPrompt.userChoice;
+          if (outcome === 'accepted') {
+            deferredInstallPrompt = null;
+            document.getElementById('btnPwaInstall')?.classList.add('hidden');
+            document.getElementById('btnPwaInstallMobile')?.classList.add('hidden');
+          }
+        } else if (isIOS) {
+          openIosInstallModal();
+        } else {
+          triggerToast('Utilisez le menu du navigateur pour installer', 'ℹ️');
+        }
+      }
+
+      function openIosInstallModal() {
+        const modal = document.getElementById('iosInstallModal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      }
+
+      function closeIosInstallModal() {
+        const modal = document.getElementById('iosInstallModal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+
+      function openPwaInfoModal() {
+        const modal = document.getElementById('pwaInfoModal');
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+        const statusElem = document.getElementById('pwaStatusMode');
+        const installBtnContainer = document.getElementById('pwaModalInstallContainer');
+
+        if (isStandalone) {
+          statusElem.innerHTML = '<span class="w-2 h-2 rounded-full bg-emerald-400"></span> Installée (Mode Standalone)';
+          statusElem.className = 'font-bold text-emerald-400 flex items-center gap-1.5';
+          if (installBtnContainer) installBtnContainer.classList.add('hidden');
+        } else {
+          statusElem.innerHTML = '<span class="w-2 h-2 rounded-full bg-amber-400"></span> Navigateur (Prête à installer)';
+          statusElem.className = 'font-bold text-amber-400 flex items-center gap-1.5';
+          if (installBtnContainer) installBtnContainer.classList.remove('hidden');
+        }
+
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      }
+
+      function closePwaInfoModal() {
+        const modal = document.getElementById('pwaInfoModal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+
+      function checkPwaUpdates() {
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.getRegistration().then(reg => {
+            if (reg) {
+              reg.update().then(() => {
+                triggerToast('Service Worker à jour', '🚀');
+              });
+            } else {
+              triggerToast('Aucun Service Worker détecté', 'ℹ️');
+            }
+          }).catch(() => {
+            triggerToast('Vérification effectuée', '✅');
+          });
+        } else {
+          triggerToast('Service Worker non supporté', '⚠️');
+        }
+      }
+
+      function generateIconDataUrl(size, isMaskable = false) {
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = size;
+          canvas.height = size;
+          const ctx = canvas.getContext('2d');
+          
+          // Background
+          ctx.fillStyle = '#0f172a';
+          ctx.fillRect(0, 0, size, size);
+
+          // Center circle with gradient
+          const pad = isMaskable ? size * 0.16 : size * 0.08;
+          const rad = (size - pad * 2) / 2;
+          const cx = size / 2;
+          const cy = size / 2;
+
+          const grad = ctx.createLinearGradient(0, 0, size, size);
+          grad.addColorStop(0, '#10b981');
+          grad.addColorStop(1, '#059669');
+          ctx.fillStyle = grad;
+          ctx.beginPath();
+          ctx.arc(cx, cy, rad, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Symbol text
+          ctx.fillStyle = '#ffffff';
+          ctx.font = `bold ${Math.round(size * 0.44)}px sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText('€', cx, cy + size * 0.02);
+
+          return canvas.toDataURL('image/png');
+        } catch (e) {
+          return '';
+        }
+      }
+
+      function generateAndAttachManifest() {
+        try {
+          const icon192 = generateIconDataUrl(192, false);
+          const icon512 = generateIconDataUrl(512, false);
+          const iconMaskable = generateIconDataUrl(512, true);
+
+          // Also set apple-touch-icon
+          if (icon192) {
+            let appleIcon = document.querySelector('link[rel="apple-touch-icon"]');
+            if (!appleIcon) {
+              appleIcon = document.createElement('link');
+              appleIcon.rel = 'apple-touch-icon';
+              document.head.appendChild(appleIcon);
+            }
+            appleIcon.href = icon192;
+          }
+
+          const manifestObject = {
+            id: '/',
+            name: 'Carnet de Revenus et Dépenses',
+            short_name: 'CarnetBudget',
+            description: 'Application de gestion de budget et suivi des revenus et dépenses',
+            start_url: '.',
+            scope: './',
+            display: 'standalone',
+            orientation: 'portrait',
+            background_color: '#0f172a',
+            theme_color: '#0f172a',
+            icons: [
+              {
+                src: icon192,
+                sizes: '192x192',
+                type: 'image/png',
+                purpose: 'any'
+              },
+              {
+                src: icon512,
+                sizes: '512x512',
+                type: 'image/png',
+                purpose: 'any'
+              },
+              {
+                src: iconMaskable,
+                sizes: '512x512',
+                type: 'image/png',
+                purpose: 'maskable'
+              }
+            ]
+          };
+
+          const manifestBlob = new Blob([JSON.stringify(manifestObject)], { type: 'application/manifest+json' });
+          const manifestUrl = URL.createObjectURL(manifestBlob);
+
+          let linkElem = document.querySelector('link[rel="manifest"]');
+          if (!linkElem) {
+            linkElem = document.createElement('link');
+            linkElem.rel = 'manifest';
+            document.head.appendChild(linkElem);
+          }
+          linkElem.href = manifestUrl;
+        } catch (e) {
+          console.warn('PWA Manifest creation notice:', e);
+        }
+      }
+
+      function registerDynamicServiceWorker() {
+        if ('serviceWorker' in navigator) {
+          // Attempt registering the physical /sw.js file first
+          navigator.serviceWorker.register('/sw.js')
+            .then(reg => {
+              console.log('PWA ServiceWorker registered via /sw.js:', reg.scope);
+            })
+            .catch(() => {
+              // Fallback to inline Blob ServiceWorker for standalone single-file execution
+              try {
+                const swCode = `
+                  const CACHE_NAME = 'budget-pwa-v2';
+                  self.addEventListener('install', (e) => {
+                    self.skipWaiting();
+                  });
+                  self.addEventListener('activate', (e) => {
+                    e.waitUntil(self.clients.claim());
+                  });
+                  self.addEventListener('fetch', (e) => {
+                    e.respondWith(
+                      fetch(e.request).catch(() => caches.match(e.request))
+                    );
+                  });
+                `;
+                const blob = new Blob([swCode], { type: 'application/javascript' });
+                const swUrl = URL.createObjectURL(blob);
+                navigator.serviceWorker.register(swUrl).catch(err => {
+                  console.log('SW Registration Note:', err.message);
+                });
+              } catch (e) {
+                console.warn('Service worker setup notice:', e);
+              }
+            });
+        }
+      }
+    </script>
+  </body>
+</html>

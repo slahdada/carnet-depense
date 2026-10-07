@@ -1,0 +1,67 @@
+{
+  "id": "/",
+  "name": "Carnet de Revenus et Dépenses",
+  "short_name": "CarnetBudget",
+  "description": "Application web PWA moderne de gestion financière personnelle, suivi des dépenses et revenus, bilans et calculs périodiques.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "lang": "fr",
+  "dir": "ltr",
+  "categories": [
+    "finance",
+    "productivity",
+    "utilities"
+  ],
+  "shortcuts": [
+    {
+      "name": "Ajouter une opération",
+      "short_name": "Ajouter",
+      "description": "Enregistrer rapidement une dépense ou un revenu",
+      "url": "/?action=add",
+      "icons": [
+        {
+          "src": "/pwa-192x192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Bilan du mois",
+      "short_name": "Mois",
+      "description": "Consulter la synthèse budgétaire du mois en cours",
+      "url": "/?period=month",
+      "icons": [
+        {
+          "src": "/pwa-192x192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ],
+  "icons": [
+    {
+      "src": "/pwa-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-maskable-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+{
+  "name": "Carnet de Revenus et Dépenses",
+  "description": "Application web PWA moderne de gestion financière personnelle, suivi des dépenses et revenus, bilans et calculs périodiques.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
